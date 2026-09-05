@@ -480,7 +480,7 @@ BARCODE_HTML = """
 
                 <div style="background: rgba(56, 189, 248, 0.1); border: 1px solid var(--accent-blue); padding: 16px 24px; border-radius: var(--radius-md); text-align: center; margin: 20px 0; width: 100%; max-width: 480px;">
                     <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;">Mobile Browser Web Address:</div>
-                    <strong style="font-size: 1.5rem; color: var(--accent-blue);">__SERVER_URL__</strong>
+                    <strong id="mobile-url-display" style="font-size: 1.5rem; color: var(--accent-blue);">__SERVER_URL__</strong>
                 </div>
 
                 <div style="text-align: left; background: var(--input-bg); border: 1px solid var(--card-border); padding: 16px; border-radius: var(--radius-md); font-size: 0.88rem; width: 100%; max-width: 550px;">
@@ -512,7 +512,7 @@ BARCODE_HTML = """
     <div id="toast">Notification</div>
 
     <script>
-        const SERVER_URL = "__SERVER_URL__";
+        const SERVER_URL = window.location.origin;
         let html5QrcodeScanner = null;
 
         function switchTab(tabName) {
@@ -533,6 +533,8 @@ BARCODE_HTML = """
         }
 
         window.addEventListener('DOMContentLoaded', () => {
+            const urlEl = document.getElementById('mobile-url-display');
+            if(urlEl) urlEl.innerText = window.location.origin;
             try { startBarcodeScanner(); } catch(e) {}
             try { loadInventory(); } catch(e) {}
         });
