@@ -57,11 +57,15 @@ SERVER_URL = f"http://{LOCAL_IP}:{PORT}"
 # ---------------------------------------------------------
 # 2. Database Connection & Initialization (PostgreSQL)
 # ---------------------------------------------------------
-DB_HOST = os.getenv("POSTGRES_HOST", "localhost")
-DB_PORT = int(os.getenv("POSTGRES_PORT", 5432))
-DB_NAME = os.getenv("POSTGRES_DB", "hospital_assets")
-DB_USER = os.getenv("POSTGRES_USER", "postgres")
-DB_PASSWORD = os.getenv("POSTGRES_PASSWORD", "postgrespassword")
+DB_HOST = os.getenv("POSTGRES_HOST") or "localhost"
+port_env = os.getenv("POSTGRES_PORT")
+try:
+    DB_PORT = int(port_env) if port_env and port_env.strip() else 5432
+except (ValueError, TypeError):
+    DB_PORT = 5432
+DB_NAME = os.getenv("POSTGRES_DB") or "hospital_assets"
+DB_USER = os.getenv("POSTGRES_USER") or "postgres"
+DB_PASSWORD = os.getenv("POSTGRES_PASSWORD") or "postgrespassword"
 DATABASE_URL = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL") or os.getenv("POSTGRES_URL_NON_POOLING")
 
 def get_db_connection():
