@@ -62,7 +62,7 @@ DB_PORT = int(os.getenv("POSTGRES_PORT", 5432))
 DB_NAME = os.getenv("POSTGRES_DB", "hospital_assets")
 DB_USER = os.getenv("POSTGRES_USER", "postgres")
 DB_PASSWORD = os.getenv("POSTGRES_PASSWORD", "postgrespassword")
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL") or os.getenv("POSTGRES_URL_NON_POOLING")
 
 def get_db_connection():
     if DATABASE_URL:
