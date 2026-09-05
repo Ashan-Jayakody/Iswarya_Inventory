@@ -1,0 +1,9 @@
+# Ignore bytecode
+__pycache__/
+*.pyc
+
+# Ignore large media/document files
+*.zip
+*.pdf
+*.pptx
+hospital_assets.db
