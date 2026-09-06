@@ -285,7 +285,7 @@ BARCODE_HTML = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hospital Asset Scanner</title>
+    <title>Hospital Asset Management</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -306,33 +306,33 @@ BARCODE_HTML = """
             --text-main: #0f172a;
             --text-muted: #64748b;
             --text-subtle: #94a3b8;
-            --radius-md: 8px;
-            --radius-lg: 12px;
+            --radius-md: 6px;
+            --radius-lg: 10px;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
-        body { background-color: var(--bg-color); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; padding-bottom: 84px; }
+        body { background-color: var(--bg-color); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; padding-bottom: 76px; }
 
-        header { background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(10px); border-bottom: 1px solid var(--card-border); padding: 12px 20px; position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; }
-        .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 0.88rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-main); }
-        .brand-icon { color: var(--accent); font-size: 1.1rem; }
-        .ip-badge { background: #f1f5f9; color: var(--text-muted); border: 1px solid var(--card-border); padding: 5px 12px; border-radius: 20px; font-size: 0.78rem; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: border-color 0.2s ease; }
-        .ip-badge strong { color: var(--text-main); }
-        .ip-badge:hover { border-color: var(--accent); }
+        header { background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(10px); border-bottom: 1px solid var(--card-border); padding: 14px 24px; position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; }
+        .brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-main); }
+        .brand-badge { background: #eff6ff; color: var(--accent); border: 1px solid #bfdbfe; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; }
+        .ip-badge { background: #f1f5f9; color: var(--text-muted); border: 1px solid var(--card-border); padding: 5px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s ease; }
+        .ip-badge strong { color: var(--text-main); font-weight: 600; }
+        .ip-badge:hover { border-color: var(--input-border); background: #e2e8f0; }
 
-        .container { width: 100%; max-width: 860px; margin: 0 auto; padding: 16px; flex: 1; }
+        .container { width: 100%; max-width: 860px; margin: 0 auto; padding: 20px 16px; flex: 1; }
 
-        .tab-nav { display: flex; gap: 6px; margin-bottom: 18px; background: #f1f5f9; padding: 4px; border-radius: var(--radius-md); border: 1px solid var(--card-border); }
-        .tab-btn { flex: 1; padding: 10px 14px; border: none; background: transparent; color: var(--text-muted); font-weight: 500; font-size: 0.88rem; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s ease; }
-        .tab-btn.active { background: var(--card-bg) !important; color: var(--text-main) !important; border: 1px solid var(--input-border); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+        .tab-nav { display: flex; gap: 4px; margin-bottom: 20px; background: #f1f5f9; padding: 3px; border-radius: var(--radius-md); border: 1px solid var(--card-border); }
+        .tab-btn { flex: 1; padding: 9px 12px; border: none; background: transparent; color: var(--text-muted); font-weight: 500; font-size: 0.85rem; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.15s ease; }
+        .tab-btn.active { background: var(--card-bg) !important; color: var(--text-main) !important; border: 1px solid var(--card-border); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
 
         .tab-content { display: none !important; }
-        .tab-content.active { display: block !important; animation: fadeIn 0.2s ease; }
+        .tab-content.active { display: block !important; animation: fadeIn 0.15s ease; }
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius-lg); padding: 18px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04); }
-        .card-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; color: var(--text-main); letter-spacing: 0.01em; }
+        .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04); }
+        .card-title { font-size: 0.92rem; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; color: var(--text-main); letter-spacing: -0.01em; }
 
         #reader-wrapper { position: relative; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--card-border); background: #000; min-height: 240px; }
         #reader { width: 100%; border: none !important; }
@@ -342,72 +342,72 @@ BARCODE_HTML = """
         #reader__camera_selection { padding: 8px 12px; border-radius: 6px; background: var(--input-bg); color: var(--text-main); border: 1px solid var(--input-border); width: 100%; outline: none; margin-bottom: 8px; font-size: 0.88rem; }
 
         .scanner-actions { display: flex; gap: 10px; margin-top: 14px; }
-        .btn { min-height: 44px; padding: 10px 16px; border-radius: var(--radius-md); border: 1px solid transparent; font-weight: 500; font-size: 0.88rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.15s ease; text-decoration: none; }
+        .btn { min-height: 42px; padding: 9px 16px; border-radius: var(--radius-md); border: 1px solid transparent; font-weight: 500; font-size: 0.86rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.15s ease; text-decoration: none; }
         .btn-primary { background: var(--accent); color: #ffffff; border-color: var(--accent); }
-        .btn-primary:active { background: var(--accent-hover); }
+        .btn-primary:hover { background: var(--accent-hover); }
         .btn-secondary { background: #f1f5f9; color: var(--text-main); border-color: var(--input-border); }
-        .btn-secondary:active { background: #e2e8f0; }
+        .btn-secondary:hover { background: #e2e8f0; }
         .btn-outline { background: transparent; color: var(--text-muted); border-color: var(--card-border); }
-        .btn-danger { background: rgba(239, 68, 68, 0.08); color: #dc2626; border-color: #fca5a5; }
+        .btn-danger { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+        .btn-danger:hover { background: #fee2e2; }
 
         .file-upload-btn { position: relative; overflow: hidden; width: 100%; }
         .file-upload-btn input[type=file] { position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
 
         .form-group { margin-bottom: 14px; }
-        .form-group label { display: block; font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 6px; }
-        .form-control { width: 100%; min-height: 44px; padding: 10px 14px; background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 6px; color: var(--text-main); font-size: 0.92rem; outline: none; transition: border-color 0.2s ease; }
+        .form-group label { display: block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 6px; }
+        .form-control { width: 100%; min-height: 42px; padding: 9px 12px; background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 6px; color: var(--text-main); font-size: 0.9rem; outline: none; transition: border-color 0.15s ease; }
         .form-control:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
 
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
 
-        .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 500; background: #f1f5f9; border: 1px solid var(--card-border); color: var(--text-main); }
+        .badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 500; background: #f1f5f9; border: 1px solid var(--card-border); color: var(--text-main); }
         .badge-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
         .badge-dot.active { background: #10b981; }
         .badge-dot.maintenance { background: #f59e0b; }
         .badge-dot.order { background: #ef4444; }
 
         .table-responsive { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88rem; }
-        th { background: #f8fafc; padding: 10px 14px; color: var(--text-muted); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--card-border); }
-        td { padding: 12px 14px; border-bottom: 1px solid var(--card-border); }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.86rem; }
+        th { background: #f8fafc; padding: 10px 14px; color: var(--text-muted); font-weight: 600; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--card-border); }
+        td { padding: 12px 14px; border-bottom: 1px solid var(--card-border); color: var(--text-main); }
         tr:hover td { background: #f8fafc; }
 
         .qr-center { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
 
-        #toast { position: fixed; bottom: 84px; left: 50%; transform: translateX(-50%); background: #0f172a; border: 1px solid #1e293b; color: #ffffff; padding: 10px 20px; border-radius: 24px; font-size: 0.85rem; font-weight: 500; box-shadow: 0 4px 14px rgba(0,0,0,0.15); display: none; z-index: 1000; transition: all 0.2s ease; }
+        #toast { position: fixed; bottom: 76px; left: 50%; transform: translateX(-50%); background: #0f172a; border: 1px solid #1e293b; color: #ffffff; padding: 10px 20px; border-radius: 20px; font-size: 0.82rem; font-weight: 500; box-shadow: 0 4px 14px rgba(0,0,0,0.12); display: none; z-index: 1000; transition: all 0.2s ease; }
 
-        .mobile-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(10px); border-top: 1px solid var(--card-border); display: flex; justify-content: space-around; padding: 8px 0; z-index: 200; }
-        .mobile-nav-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: none; color: var(--text-muted); font-size: 0.72rem; font-weight: 500; cursor: pointer; padding: 6px 16px; border-radius: 8px; transition: color 0.15s ease; }
+        .mobile-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(10px); border-top: 1px solid var(--card-border); display: flex; justify-content: space-around; padding: 8px 0; z-index: 200; }
+        .mobile-nav-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: none; color: var(--text-muted); font-size: 0.75rem; font-weight: 500; cursor: pointer; padding: 6px 16px; border-radius: 6px; transition: color 0.15s ease; }
         .mobile-nav-btn.active { color: var(--accent); font-weight: 600; }
-        .mobile-nav-icon { font-size: 1.1rem; }
     </style>
 </head>
 <body>
 
     <header>
         <div class="brand">
-            <span class="brand-icon">✚</span>
             <span>Hospital Assets</span>
+            <span class="brand-badge">Inventory</span>
         </div>
         <div class="ip-badge" onclick="switchTab('pair')">
-            <span>Mobile Link:</span>
+            <span>Mobile Address:</span>
             <strong>__LOCAL_IP__:__PORT__</strong>
         </div>
     </header>
 
     <div class="container">
         <div class="tab-nav">
-            <button class="tab-btn active" id="tab-btn-scan" onclick="switchTab('scan')">║▌ Scanner</button>
-            <button class="tab-btn" id="tab-btn-inventory" onclick="switchTab('inventory')">📋 Inventory</button>
-            <button class="tab-btn" id="tab-btn-pair" onclick="switchTab('pair')">📱 Connect</button>
+            <button class="tab-btn active" id="tab-btn-scan" onclick="switchTab('scan')">Barcode Scanner</button>
+            <button class="tab-btn" id="tab-btn-inventory" onclick="switchTab('inventory')">Inventory List</button>
+            <button class="tab-btn" id="tab-btn-pair" onclick="switchTab('pair')">Mobile Connection</button>
         </div>
 
         <!-- TAB 1: SCANNER -->
         <div id="tab-scan" class="tab-content active">
             <div class="card">
                 <div class="card-title">
-                    <span>Barcode & QR Camera</span>
+                    <span>Camera Viewfinder</span>
                     <span class="badge"><span class="badge-dot active"></span>Camera Ready</span>
                 </div>
 
@@ -417,16 +417,16 @@ BARCODE_HTML = """
 
                 <div class="scanner-actions">
                     <div class="btn btn-secondary file-upload-btn">
-                        <span>📸 Take Photo / Upload Barcode Image</span>
+                        <span>Upload or Capture Barcode Image</span>
                         <input type="file" id="qr-input-file" accept="image/*" capture="environment">
                     </div>
                 </div>
             </div>
 
             <div class="card">
-                <div class="card-title">⌨️ Manual / Scanner Input</div>
+                <div class="card-title">Manual Barcode Input</div>
                 <form onsubmit="event.preventDefault(); lookupManualId();" style="display: flex; gap: 8px;">
-                    <input type="text" id="manual-asset-id" class="form-control" placeholder="Scan or type Barcode ID..." onkeydown="if(event.key==='Enter'){event.preventDefault(); lookupManualId();}">
+                    <input type="text" id="manual-asset-id" class="form-control" placeholder="Enter or scan Barcode ID..." onkeydown="if(event.key==='Enter'){event.preventDefault(); lookupManualId();}">
                     <button type="submit" class="btn btn-secondary" style="min-width: 90px;">Lookup</button>
                 </form>
             </div>
@@ -438,8 +438,8 @@ BARCODE_HTML = """
         <div id="tab-inventory" class="tab-content">
             <div class="card">
                 <div class="card-title">
-                    <span>Hospital Inventory</span>
-                    <a href="/export" class="btn btn-secondary" style="font-size: 0.8rem; min-height: 36px; padding: 4px 12px;">📥 Export CSV</a>
+                    <span>Asset Inventory</span>
+                    <a href="/export" class="btn btn-secondary" style="font-size: 0.8rem; min-height: 34px; padding: 4px 12px;">Export CSV</a>
                 </div>
 
                 <div class="form-row" style="margin-bottom: 16px;">
@@ -482,22 +482,22 @@ BARCODE_HTML = """
         <!-- TAB 3: MOBILE PAIR -->
         <div id="tab-pair" class="tab-content">
             <div class="card qr-center">
-                <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 6px;">📱 Mobile Browser Link</h3>
-                <p style="color: var(--text-muted); font-size: 0.88rem; max-width: 480px; line-height: 1.5;">
-                    Ensure your mobile phone is connected to the <strong>same Wi-Fi network</strong> as this host laptop, then open this address in Chrome or Safari:
+                <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 6px;">Mobile Device Connection</h3>
+                <p style="color: var(--text-muted); font-size: 0.85rem; max-width: 480px; line-height: 1.5;">
+                    Ensure your mobile device is connected to the <strong>same network</strong> as this server, then open this address in Chrome or Safari:
                 </p>
 
                 <div style="background: #f8fafc; border: 1px solid var(--card-border); padding: 14px 20px; border-radius: var(--radius-md); text-align: center; margin: 20px 0; width: 100%; max-width: 440px;">
-                    <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em;">Mobile Web Address:</div>
-                    <strong id="mobile-url-display" style="font-size: 1.35rem; color: var(--accent);">__SERVER_URL__</strong>
+                    <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em;">Mobile Server Address</div>
+                    <strong id="mobile-url-display" style="font-size: 1.25rem; color: var(--accent);">__SERVER_URL__</strong>
                 </div>
 
                 <div style="text-align: left; background: var(--bg-color); border: 1px solid var(--card-border); padding: 16px; border-radius: var(--radius-md); font-size: 0.85rem; width: 100%; max-width: 500px; color: var(--text-muted);">
-                    <strong style="color: var(--text-main); font-size: 0.9rem;">💡 Scanning Quick Tips:</strong>
+                    <strong style="color: var(--text-main); font-size: 0.88rem;">Scanning Guidelines</strong>
                     <ul style="margin-left: 18px; margin-top: 6px; line-height: 1.6;">
-                        <li><strong>For 1-Tap Photo Scan:</strong> Tap <strong>📸 Take Photo / Upload Barcode Image</strong> to snap any physical barcode tag.</li>
-                        <li><strong>Audio & Haptic Feedback:</strong> Plays a clean beep and vibrates your phone upon a successful decode.</li>
-                        <li><strong>1D Barcodes Supported:</strong> CODE128, CODE39, CODE93, EAN-13, EAN-8, UPC-A, UPC-E, Codabar, and QR Codes.</li>
+                        <li><strong>Photo Capture:</strong> Tap <strong>Upload or Capture Barcode Image</strong> to snap physical barcode tags using your device camera.</li>
+                        <li><strong>Feedback:</strong> System emits a clean audio tone and haptic vibration upon successful decode.</li>
+                        <li><strong>Supported Formats:</strong> CODE128, CODE39, CODE93, EAN-13, EAN-8, UPC-A, UPC-E, Codabar, and QR Codes.</li>
                     </ul>
                 </div>
             </div>
@@ -506,16 +506,13 @@ BARCODE_HTML = """
 
     <div class="mobile-nav">
         <button class="mobile-nav-btn active" id="mob-btn-scan" onclick="switchTab('scan')">
-            <span class="mobile-nav-icon">║▌</span>
             <span>Scanner</span>
         </button>
         <button class="mobile-nav-btn" id="mob-btn-inventory" onclick="switchTab('inventory')">
-            <span class="mobile-nav-icon">📋</span>
             <span>Inventory</span>
         </button>
         <button class="mobile-nav-btn" id="mob-btn-pair" onclick="switchTab('pair')">
-            <span class="mobile-nav-icon">📱</span>
-            <span>Connect</span>
+            <span>Connection</span>
         </button>
     </div>
 
@@ -681,7 +678,7 @@ BARCODE_HTML = """
             const resCard = document.getElementById('scan-result-card');
             resCard.innerHTML = `
                 <div class="card" style="text-align: center; padding: 24px;">
-                    <div style="font-size: 0.95rem; color: var(--text-muted);">Searching Barcode: <strong style="color: var(--text-main);">${assetId}</strong>...</div>
+                    <div style="font-size: 0.9rem; color: var(--text-muted);">Searching Barcode: <strong style="color: var(--text-main);">${assetId}</strong>...</div>
                 </div>`;
 
             try {
@@ -705,51 +702,51 @@ BARCODE_HTML = """
                 <div class="card">
                     <div class="card-title" style="border-bottom: 1px solid var(--card-border); padding-bottom: 10px; margin-bottom: 14px;">
                         <div>
-                            <span style="font-size: 1.15rem; font-weight: 600; color: var(--text-main);">📦 ${asset.name}</span>
-                            <div style="font-size: 0.82rem; color: var(--accent); font-weight: 500; margin-top: 2px;">ID: ${asset.asset_id}</div>
+                            <span style="font-size: 1.05rem; font-weight: 600; color: var(--text-main);">${asset.name}</span>
+                            <div style="font-size: 0.8rem; color: var(--accent); font-weight: 500; margin-top: 2px;">Barcode ID: ${asset.asset_id}</div>
                         </div>
                         ${getStatusBadgeHtml(asset.status)}
                     </div>
 
-                    <div style="background: #f8fafc; border: 1px solid var(--card-border); border-radius: 8px; padding: 14px; margin-bottom: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.9rem;">
+                    <div style="background: #f8fafc; border: 1px solid var(--card-border); border-radius: 6px; padding: 14px; margin-bottom: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.88rem;">
                         <div>
-                            <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">CATEGORY</div>
+                            <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">CATEGORY</div>
                             <div style="font-weight: 500; color: var(--text-main); margin-top: 2px;">${asset.category || 'General'}</div>
                         </div>
                         <div>
-                            <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">DEPARTMENT</div>
+                            <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">DEPARTMENT</div>
                             <div style="font-weight: 500; color: var(--text-main); margin-top: 2px;">${asset.department || 'General'}</div>
                         </div>
                         <div>
-                            <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">LOCATION</div>
-                            <div style="font-weight: 500; color: var(--text-main); margin-top: 2px;">📍 ${asset.location || 'Unspecified'}</div>
+                            <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">LOCATION</div>
+                            <div style="font-weight: 500; color: var(--text-main); margin-top: 2px;">${asset.location || 'Unspecified'}</div>
                         </div>
                         <div>
-                            <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">STATUS</div>
+                            <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">STATUS</div>
                             <div style="font-weight: 500; color: var(--text-main); margin-top: 2px;">${asset.status}</div>
                         </div>
                         ${asset.serial_number ? `
                         <div style="grid-column: span 2;">
-                            <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">SERIAL / MODEL</div>
+                            <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">SERIAL / MODEL</div>
                             <div style="font-weight: 500; color: var(--text-main); margin-top: 2px;">${asset.serial_number}</div>
                         </div>` : ''}
                         ${asset.notes ? `
                         <div style="grid-column: span 2;">
-                            <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">NOTES</div>
+                            <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">NOTES</div>
                             <div style="font-weight: 400; color: var(--text-muted); margin-top: 2px;">${asset.notes}</div>
                         </div>` : ''}
-                        <div style="grid-column: span 2; border-top: 1px solid var(--card-border); padding-top: 8px; font-size: 0.75rem; color: var(--text-subtle);">
-                            🕒 Last Updated: ${formattedDate}
+                        <div style="grid-column: span 2; border-top: 1px solid var(--card-border); padding-top: 8px; font-size: 0.74rem; color: var(--text-subtle);">
+                            Last Updated: ${formattedDate}
                         </div>
                     </div>
 
                     <div style="display: flex; gap: 10px;">
-                        <button class="btn btn-secondary" style="flex: 1;" onclick="toggleEditForm()">✏️ Edit Details</button>
+                        <button class="btn btn-secondary" style="flex: 1;" onclick="toggleEditForm()">Edit Details</button>
                         <button class="btn btn-primary" onclick="document.getElementById('scan-result-card').innerHTML=''">Scan Another</button>
                     </div>
 
                     <form id="edit-asset-form" style="display: none; margin-top: 16px; border-top: 1px solid var(--card-border); padding-top: 16px;" onsubmit="submitAssetUpdate(event, '${asset.asset_id}')">
-                        <h4 style="margin-bottom: 12px; font-size: 0.95rem; font-weight: 600; color: var(--text-main);">✏️ Edit Asset Details</h4>
+                        <h4 style="margin-bottom: 12px; font-size: 0.9rem; font-weight: 600; color: var(--text-main);">Edit Asset Details</h4>
                         
                         <div class="form-row">
                             <div class="form-group">
@@ -820,7 +817,7 @@ BARCODE_HTML = """
             resCard.innerHTML = `
                 <div class="card">
                     <div class="card-title">
-                        <span>🆕 Register New Asset</span>
+                        <span>Register New Asset</span>
                         <span class="badge"><span class="badge-dot maintenance"></span>New Barcode</span>
                     </div>
 
@@ -985,8 +982,8 @@ BARCODE_HTML = """
                             <td>${a.location}</td>
                             <td>${getStatusBadgeHtml(a.status)}</td>
                             <td>
-                                <button class="btn btn-secondary" style="padding: 4px 10px; min-height: 32px; font-size: 0.78rem;" onclick="switchTab('scan'); handleScannedId('${a.asset_id}');">Edit</button>
-                                <button class="btn btn-danger" style="padding: 4px 10px; min-height: 32px; font-size: 0.78rem;" onclick="deleteAsset('${a.asset_id}')">Delete</button>
+                                <button class="btn btn-secondary" style="padding: 4px 10px; min-height: 30px; font-size: 0.78rem;" onclick="switchTab('scan'); handleScannedId('${a.asset_id}');">Edit</button>
+                                <button class="btn btn-danger" style="padding: 4px 10px; min-height: 30px; font-size: 0.78rem;" onclick="deleteAsset('${a.asset_id}')">Delete</button>
                             </td>
                         </tr>
                     `;
