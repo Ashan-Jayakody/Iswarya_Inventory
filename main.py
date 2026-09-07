@@ -446,15 +446,15 @@ BARCODE_HTML = """
                     <input type="text" id="inv-search" class="form-control" placeholder="Search by name, ID, or room..." oninput="loadInventory()">
                     <select id="inv-dept-filter" class="form-control" onchange="loadInventory()">
                         <option value="">All Departments</option>
-                        <option value="Emergency">Emergency / ER</option>
-                        <option value="ICU">ICU / Critical Care</option>
-                        <option value="Radiology">Radiology / Imaging</option>
-                        <option value="Surgery">Surgery / OR</option>
-                        <option value="Pediatrics">Pediatrics</option>
-                        <option value="Cardiology">Cardiology</option>
-                        <option value="General Ward">General Ward</option>
-                        <option value="IT Hardware">IT & Telecom</option>
-                        <option value="Facilities">Facilities & Maintenance</option>
+                        <option value="Admin">Admin</option>
+                        <option value="Finance">Finance</option>
+                        <option value="Lab">Lab</option>
+                        <option value="Nursing">Nursing</option>
+                        <option value="Hr">Hr</option>
+                        <option value="It">It</option>
+                        <option value="Reception/billing">Reception/billing</option>
+                        <option value="Councelling">Councelling</option>
+                        <option value="Clinical">Clinical</option>
                     </select>
                 </div>
 
@@ -546,8 +546,8 @@ BARCODE_HTML = """
 
         function getStatusBadgeHtml(status) {
             let dotClass = "active";
-            if(status === 'In Maintenance') dotClass = "maintenance";
-            if(status === 'Out of Order') dotClass = "order";
+            if(status === 'Repair required') dotClass = "maintenance";
+            if(status === 'Damaged' || status === 'Disposable') dotClass = "order";
             return `<span class="badge"><span class="badge-dot ${dotClass}"></span>${status}</span>`;
         }
 
@@ -756,46 +756,57 @@ BARCODE_HTML = """
                             <div class="form-group">
                                 <label>Status</label>
                                 <select id="edit-status" class="form-control">
-                                    <option value="Active" ${asset.status === 'Active' ? 'selected' : ''}>Active / Available</option>
-                                    <option value="In Maintenance" ${asset.status === 'In Maintenance' ? 'selected' : ''}>In Maintenance</option>
-                                    <option value="Out of Order" ${asset.status === 'Out of Order' ? 'selected' : ''}>Out of Order</option>
+                                    <option value="Active" ${asset.status === 'Active' ? 'selected' : ''}>Active</option>
+                                    <option value="Damaged" ${asset.status === 'Damaged' ? 'selected' : ''}>Damaged</option>
+                                    <option value="Disposable" ${asset.status === 'Disposable' ? 'selected' : ''}>Disposable</option>
+                                    <option value="Repair required" ${asset.status === 'Repair required' ? 'selected' : ''}>Repair required</option>
                                 </select>
                             </div>
                         </div>
 
                         <div class="form-row">
                             <div class="form-group">
-                                <label>Department</label>
-                                <select id="edit-dept" class="form-control">
-                                    <option value="Emergency" ${asset.department === 'Emergency' ? 'selected' : ''}>Emergency / ER</option>
-                                    <option value="ICU" ${asset.department === 'ICU' ? 'selected' : ''}>ICU / Critical Care</option>
-                                    <option value="Radiology" ${asset.department === 'Radiology' ? 'selected' : ''}>Radiology / Imaging</option>
-                                    <option value="Surgery" ${asset.department === 'Surgery' ? 'selected' : ''}>Surgery / OR</option>
-                                    <option value="Pediatrics" ${asset.department === 'Pediatrics' ? 'selected' : ''}>Pediatrics</option>
-                                    <option value="Cardiology" ${asset.department === 'Cardiology' ? 'selected' : ''}>Cardiology</option>
-                                    <option value="General Ward" ${asset.department === 'General Ward' ? 'selected' : ''}>General Ward</option>
-                                    <option value="IT Hardware" ${asset.department === 'IT Hardware' ? 'selected' : ''}>IT Hardware</option>
-                                    <option value="Facilities" ${asset.department === 'Facilities' ? 'selected' : ''}>Facilities</option>
+                                <label>Category</label>
+                                <select id="edit-category" class="form-control">
+                                    <option value="Medical & Surgical Equipment" ${asset.category === 'Medical & Surgical Equipment' ? 'selected' : ''}>Medical & Surgical Equipment</option>
+                                    <option value="Office equipment" ${asset.category === 'Office equipment' ? 'selected' : ''}>Office equipment</option>
+                                    <option value="IT equipment" ${asset.category === 'IT equipment' ? 'selected' : ''}>IT equipment</option>
+                                    <option value="Furniture & fixtures" ${asset.category === 'Furniture & fixtures' ? 'selected' : ''}>Furniture & fixtures</option>
+                                    <option value="Intangible assets" ${asset.category === 'Intangible assets' ? 'selected' : ''}>Intangible assets</option>
+                                    <option value="Other equipment" ${asset.category === 'Other equipment' ? 'selected' : ''}>Other equipment</option>
                                 </select>
                             </div>
+                            <div class="form-group">
+                                <label>Department</label>
+                                <select id="edit-dept" class="form-control">
+                                    <option value="Admin" ${asset.department === 'Admin' ? 'selected' : ''}>Admin</option>
+                                    <option value="Finance" ${asset.department === 'Finance' ? 'selected' : ''}>Finance</option>
+                                    <option value="Lab" ${asset.department === 'Lab' ? 'selected' : ''}>Lab</option>
+                                    <option value="Nursing" ${asset.department === 'Nursing' ? 'selected' : ''}>Nursing</option>
+                                    <option value="Hr" ${asset.department === 'Hr' ? 'selected' : ''}>Hr</option>
+                                    <option value="It" ${asset.department === 'It' ? 'selected' : ''}>It</option>
+                                    <option value="Reception/billing" ${asset.department === 'Reception/billing' ? 'selected' : ''}>Reception/billing</option>
+                                    <option value="Councelling" ${asset.department === 'Councelling' ? 'selected' : ''}>Councelling</option>
+                                    <option value="Clinical" ${asset.department === 'Clinical' ? 'selected' : ''}>Clinical</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
                             <div class="form-group">
                                 <label>Location / Room</label>
                                 <input type="text" id="edit-location" class="form-control" value="${asset.location}" required>
                             </div>
-                        </div>
-
-                        <div class="form-row">
                             <div class="form-group">
                                 <label>Serial Number</label>
                                 <input type="text" id="edit-serial" class="form-control" value="${asset.serial_number || ''}">
                             </div>
-                            <div class="form-group">
-                                <label>Notes</label>
-                                <input type="text" id="edit-notes" class="form-control" value="${asset.notes || ''}">
-                            </div>
                         </div>
 
-                        <input type="hidden" id="edit-category" value="${asset.category}">
+                        <div class="form-group">
+                            <label>Notes</label>
+                            <input type="text" id="edit-notes" class="form-control" value="${asset.notes || ''}">
+                        </div>
 
                         <div style="display: flex; gap: 10px; margin-top: 12px;">
                             <button type="submit" class="btn btn-primary" style="flex: 1;">Save Changes</button>
@@ -836,27 +847,26 @@ BARCODE_HTML = """
                             <div class="form-group">
                                 <label>Category</label>
                                 <select id="new-category" class="form-control">
-                                    <option value="Medical Equipment">Medical Equipment</option>
-                                    <option value="Diagnostic Equipment">Diagnostic Equipment</option>
-                                    <option value="Patient Care">Patient Care</option>
-                                    <option value="IT Hardware">IT Hardware</option>
-                                    <option value="Furniture">Furniture</option>
-                                    <option value="Laboratory">Laboratory</option>
-                                    <option value="Facilities">Facilities</option>
+                                    <option value="Medical & Surgical Equipment">Medical & Surgical Equipment</option>
+                                    <option value="Office equipment">Office equipment</option>
+                                    <option value="IT equipment">IT equipment</option>
+                                    <option value="Furniture & fixtures">Furniture & fixtures</option>
+                                    <option value="Intangible assets">Intangible assets</option>
+                                    <option value="Other equipment">Other equipment</option>
                                 </select>
                             </div>
                             <div class="form-group">
                                 <label>Department</label>
                                 <select id="new-department" class="form-control">
-                                    <option value="Emergency">Emergency / ER</option>
-                                    <option value="ICU">ICU / Critical Care</option>
-                                    <option value="Radiology">Radiology / Imaging</option>
-                                    <option value="Surgery">Surgery / OR</option>
-                                    <option value="Pediatrics">Pediatrics</option>
-                                    <option value="Cardiology">Cardiology</option>
-                                    <option value="General Ward">General Ward</option>
-                                    <option value="IT Hardware">IT & Telecom</option>
-                                    <option value="Facilities">Facilities</option>
+                                    <option value="Admin">Admin</option>
+                                    <option value="Finance">Finance</option>
+                                    <option value="Lab">Lab</option>
+                                    <option value="Nursing">Nursing</option>
+                                    <option value="Hr">Hr</option>
+                                    <option value="It">It</option>
+                                    <option value="Reception/billing">Reception/billing</option>
+                                    <option value="Councelling">Councelling</option>
+                                    <option value="Clinical">Clinical</option>
                                 </select>
                             </div>
                         </div>
@@ -869,9 +879,10 @@ BARCODE_HTML = """
                             <div class="form-group">
                                 <label>Status</label>
                                 <select id="new-status" class="form-control">
-                                    <option value="Active">Active / In Use</option>
-                                    <option value="In Maintenance">In Maintenance</option>
-                                    <option value="Out of Order">Out of Order</option>
+                                    <option value="Active">Active</option>
+                                    <option value="Damaged">Damaged</option>
+                                    <option value="Disposable">Disposable</option>
+                                    <option value="Repair required">Repair required</option>
                                 </select>
                             </div>
                         </div>
