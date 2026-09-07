@@ -1197,7 +1197,7 @@ BARCODE_HTML = """
                         <div class="form-group">
                             <label>Scanned Barcode ID</label>
                             <input type="text" id="new-id" class="form-control" value="${assetId}" readonly style="background: #0d1322; font-weight: 600; color: #60a5fa;">
-                        </div>`
+                        </div>
 
                         <div class="form-group">
                             <label>Asset Name</label>
