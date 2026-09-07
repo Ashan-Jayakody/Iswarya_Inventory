@@ -7,8 +7,11 @@ import io
 import csv
 import os
 import sys
+import secrets
+import hashlib
+import hmac
 from typing import Optional
-from fastapi import FastAPI, HTTPException, Query, Form
+from fastapi import FastAPI, HTTPException, Query, Form, Header
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -118,14 +121,35 @@ def init_db():
                 status VARCHAR(255) NOT NULL,
                 serial_number VARCHAR(255),
                 notes TEXT,
+                created_by VARCHAR(255) DEFAULT 'System',
+                updated_by VARCHAR(255) DEFAULT 'System',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
         cursor.execute("ALTER TABLE assets ADD COLUMN IF NOT EXISTS serial_number VARCHAR(255)")
         cursor.execute("ALTER TABLE assets ADD COLUMN IF NOT EXISTS notes TEXT")
+        cursor.execute("ALTER TABLE assets ADD COLUMN IF NOT EXISTS created_by VARCHAR(255) DEFAULT 'System'")
+        cursor.execute("ALTER TABLE assets ADD COLUMN IF NOT EXISTS updated_by VARCHAR(255) DEFAULT 'System'")
         cursor.execute("ALTER TABLE assets ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
         cursor.execute("ALTER TABLE assets ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                username VARCHAR(255) PRIMARY KEY,
+                password_hash VARCHAR(255) NOT NULL,
+                full_name VARCHAR(255),
+                role VARCHAR(50) DEFAULT 'staff',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS sessions (
+                token VARCHAR(255) PRIMARY KEY,
+                username VARCHAR(255) REFERENCES users(username) ON DELETE CASCADE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
         conn.commit()
         cursor.close()
         conn.close()
@@ -138,8 +162,52 @@ except Exception as e:
     print(f"PostgreSQL connection on startup skipped/failed: {e}")
 
 # ---------------------------------------------------------
-# 3. Pydantic Models & API Routes
+# 3. Security Helpers, Pydantic Models & API Routes
 # ---------------------------------------------------------
+def hash_password(password: str) -> str:
+    salt = secrets.token_hex(16)
+    key = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt.encode('utf-8'), 100000)
+    return f"{salt}${key.hex()}"
+
+def verify_password(password: str, stored_hash: str) -> bool:
+    try:
+        salt, key_hex = stored_hash.split('$')
+        key = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt.encode('utf-8'), 100000)
+        return hmac.compare_digest(key.hex(), key_hex)
+    except Exception:
+        return False
+
+def get_current_user_from_header(authorization: Optional[str] = Header(None)) -> Optional[dict]:
+    if not authorization:
+        return None
+    token = authorization.replace("Bearer ", "").strip()
+    if not token:
+        return None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute("""
+            SELECT u.username, u.full_name, u.role 
+            FROM sessions s 
+            JOIN users u ON s.username = u.username 
+            WHERE s.token = %s
+        """, (token,))
+        user = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        return dict(user) if user else None
+    except Exception:
+        return None
+
+class RegisterModel(BaseModel):
+    username: str
+    password: str
+    full_name: Optional[str] = ""
+
+class LoginModel(BaseModel):
+    username: str
+    password: str
+
 class AssetModel(BaseModel):
     asset_id: str = Field(..., description="Barcode or QR Code ID")
     name: str
@@ -149,6 +217,8 @@ class AssetModel(BaseModel):
     status: str
     serial_number: Optional[str] = ""
     notes: Optional[str] = ""
+    created_by: Optional[str] = "System"
+    updated_by: Optional[str] = "System"
 
 class AssetUpdateModel(BaseModel):
     name: str
@@ -158,10 +228,87 @@ class AssetUpdateModel(BaseModel):
     status: str
     serial_number: Optional[str] = ""
     notes: Optional[str] = ""
+    updated_by: Optional[str] = "System"
 
 @app.get("/api/network-info")
 def get_network_info():
     return {"local_ip": LOCAL_IP, "port": PORT, "server_url": SERVER_URL}
+
+@app.post("/api/register")
+def register_user(user_data: RegisterModel):
+    username = user_data.username.strip()
+    password = user_data.password.strip()
+    full_name = user_data.full_name.strip() if user_data.full_name else username
+    
+    if not username or not password:
+        raise HTTPException(status_code=400, detail="Username and password are required")
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT username FROM users WHERE username ILIKE %s", (username,))
+    if cursor.fetchone():
+        cursor.close()
+        conn.close()
+        raise HTTPException(status_code=400, detail="Username already exists")
+    
+    cursor.execute("SELECT COUNT(*) FROM users")
+    count = cursor.fetchone()[0]
+    role = "admin" if count == 0 else "staff"
+    
+    pwd_hash = hash_password(password)
+    cursor.execute("""
+        INSERT INTO users (username, password_hash, full_name, role)
+        VALUES (%s, %s, %s, %s)
+    """, (username, pwd_hash, full_name, role))
+    
+    token = secrets.token_urlsafe(32)
+    cursor.execute("INSERT INTO sessions (token, username) VALUES (%s, %s)", (token, username))
+    
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return {"message": "Account created successfully", "token": token, "username": username, "full_name": full_name, "role": role}
+
+@app.post("/api/login")
+def login_user(credentials: LoginModel):
+    username = credentials.username.strip()
+    password = credentials.password.strip()
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    cursor.execute("SELECT * FROM users WHERE username ILIKE %s", (username,))
+    user = cursor.fetchone()
+    
+    if not user or not verify_password(password, user["password_hash"]):
+        cursor.close()
+        conn.close()
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+    
+    token = secrets.token_urlsafe(32)
+    cursor.execute("INSERT INTO sessions (token, username) VALUES (%s, %s)", (token, user["username"]))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return {"message": "Logged in successfully", "token": token, "username": user["username"], "full_name": user["full_name"], "role": user["role"]}
+
+@app.get("/api/me")
+def get_me(authorization: Optional[str] = Header(None)):
+    user = get_current_user_from_header(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return user
+
+@app.post("/api/logout")
+def logout_user(authorization: Optional[str] = Header(None)):
+    if authorization:
+        token = authorization.replace("Bearer ", "").strip()
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM sessions WHERE token = %s", (token,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+    return {"message": "Logged out successfully"}
 
 @app.get("/api/assets")
 def list_assets(search: Optional[str] = Query(None), department: Optional[str] = Query(None), status: Optional[str] = Query(None)):
@@ -170,9 +317,9 @@ def list_assets(search: Optional[str] = Query(None), department: Optional[str] =
     query = "SELECT * FROM assets WHERE 1=1"
     params = []
     if search:
-        query += " AND (asset_id ILIKE %s OR name ILIKE %s OR location ILIKE %s OR serial_number ILIKE %s)"
+        query += " AND (asset_id ILIKE %s OR name ILIKE %s OR location ILIKE %s OR serial_number ILIKE %s OR created_by ILIKE %s)"
         term = f"%{search}%"
-        params.extend([term, term, term, term])
+        params.extend([term, term, term, term, term])
     if department:
         query += " AND department = %s"
         params.append(department)
@@ -199,7 +346,10 @@ def get_asset(asset_id: str):
     raise HTTPException(status_code=404, detail="Asset not found")
 
 @app.post("/api/assets")
-def create_asset(asset: AssetModel):
+def create_asset(asset: AssetModel, authorization: Optional[str] = Header(None)):
+    user = get_current_user_from_header(authorization)
+    creator = user["username"] if user else (asset.created_by or "System")
+    
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT asset_id FROM assets WHERE asset_id = %s", (asset.asset_id.strip(),))
@@ -209,21 +359,24 @@ def create_asset(asset: AssetModel):
         raise HTTPException(status_code=400, detail="Barcode ID already registered")
     now = datetime.datetime.now()
     cursor.execute("""
-        INSERT INTO assets (asset_id, name, category, department, location, status, serial_number, notes, created_at, updated_at)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO assets (asset_id, name, category, department, location, status, serial_number, notes, created_by, updated_by, created_at, updated_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """, (
         asset.asset_id.strip(), asset.name.strip(), asset.category.strip(),
         asset.department.strip(), asset.location.strip(), asset.status.strip(),
         asset.serial_number.strip() if asset.serial_number else "",
-        asset.notes.strip() if asset.notes else "", now, now
+        asset.notes.strip() if asset.notes else "", creator, creator, now, now
     ))
     conn.commit()
     cursor.close()
     conn.close()
-    return {"message": "Asset registered successfully", "asset_id": asset.asset_id}
+    return {"message": "Asset registered successfully", "asset_id": asset.asset_id, "created_by": creator}
 
 @app.put("/api/assets/{asset_id}")
-def update_asset(asset_id: str, asset: AssetUpdateModel):
+def update_asset(asset_id: str, asset: AssetUpdateModel, authorization: Optional[str] = Header(None)):
+    user = get_current_user_from_header(authorization)
+    updater = user["username"] if user else (asset.updated_by or "System")
+
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT asset_id FROM assets WHERE asset_id = %s", (asset_id.strip(),))
@@ -234,18 +387,18 @@ def update_asset(asset_id: str, asset: AssetUpdateModel):
     now = datetime.datetime.now()
     cursor.execute("""
         UPDATE assets 
-        SET name = %s, category = %s, department = %s, location = %s, status = %s, serial_number = %s, notes = %s, updated_at = %s
+        SET name = %s, category = %s, department = %s, location = %s, status = %s, serial_number = %s, notes = %s, updated_by = %s, updated_at = %s
         WHERE asset_id = %s
     """, (
         asset.name.strip(), asset.category.strip(), asset.department.strip(),
         asset.location.strip(), asset.status.strip(),
         asset.serial_number.strip() if asset.serial_number else "",
-        asset.notes.strip() if asset.notes else "", now, asset_id.strip()
+        asset.notes.strip() if asset.notes else "", updater, now, asset_id.strip()
     ))
     conn.commit()
     cursor.close()
     conn.close()
-    return {"message": "Asset updated successfully", "asset_id": asset_id}
+    return {"message": "Asset updated successfully", "asset_id": asset_id, "updated_by": updater}
 
 @app.delete("/api/assets/{asset_id}")
 def delete_asset(asset_id: str):
@@ -264,13 +417,13 @@ def delete_asset(asset_id: str):
 def export_csv():
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT asset_id, name, category, department, location, status, serial_number, notes, created_at, updated_at FROM assets ORDER BY updated_at DESC")
+    cursor.execute("SELECT asset_id, name, category, department, location, status, serial_number, notes, created_by, updated_by, created_at, updated_at FROM assets ORDER BY updated_at DESC")
     rows = cursor.fetchall()
     cursor.close()
     conn.close()
     stream = io.StringIO()
     writer = csv.writer(stream)
-    writer.writerow(["Barcode ID", "Name", "Category", "Department", "Location", "Status", "Serial Number", "Notes", "Created At", "Updated At"])
+    writer.writerow(["Barcode ID", "Name", "Category", "Department", "Location", "Status", "Serial Number", "Notes", "Entered By", "Last Updated By", "Created At", "Updated At"])
     writer.writerows(rows)
     response = StreamingResponse(iter([stream.getvalue()]), media_type="text/csv")
     response.headers["Content-Disposition"] = "attachment; filename=hospital_inventory.csv"
@@ -313,10 +466,10 @@ BARCODE_HTML = """
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
         body { background-color: var(--bg-color); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; padding-bottom: 76px; }
 
-        header { background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(10px); border-bottom: 1px solid var(--card-border); padding: 14px 24px; position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; }
+        header { background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(10px); border-bottom: 1px solid var(--card-border); padding: 12px 20px; position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
         .brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-main); }
         .brand-badge { background: #eff6ff; color: var(--accent); border: 1px solid #bfdbfe; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; }
-        .ip-badge { background: #f1f5f9; color: var(--text-muted); border: 1px solid var(--card-border); padding: 5px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s ease; }
+        .ip-badge { background: #f1f5f9; color: var(--text-muted); border: 1px solid var(--card-border); padding: 5px 10px; border-radius: 6px; font-size: 0.76rem; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s ease; }
         .ip-badge strong { color: var(--text-main); font-weight: 600; }
         .ip-badge:hover { border-color: var(--input-border); background: #e2e8f0; }
 
@@ -348,6 +501,7 @@ BARCODE_HTML = """
         .btn-secondary { background: #f1f5f9; color: var(--text-main); border-color: var(--input-border); }
         .btn-secondary:hover { background: #e2e8f0; }
         .btn-outline { background: transparent; color: var(--text-muted); border-color: var(--card-border); }
+        .btn-outline:hover { background: #f1f5f9; color: var(--text-main); }
         .btn-danger { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
         .btn-danger:hover { background: #fee2e2; }
 
@@ -376,7 +530,7 @@ BARCODE_HTML = """
 
         .qr-center { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
 
-        #toast { position: fixed; bottom: 76px; left: 50%; transform: translateX(-50%); background: #0f172a; border: 1px solid #1e293b; color: #ffffff; padding: 10px 20px; border-radius: 20px; font-size: 0.82rem; font-weight: 500; box-shadow: 0 4px 14px rgba(0,0,0,0.12); display: none; z-index: 1000; transition: all 0.2s ease; }
+        #toast { position: fixed; bottom: 76px; left: 50%; transform: translateX(-50%); background: #0f172a; border: 1px solid #1e293b; color: #ffffff; padding: 10px 20px; border-radius: 20px; font-size: 0.82rem; font-weight: 500; box-shadow: 0 4px 14px rgba(0,0,0,0.12); display: none; z-index: 2000; transition: all 0.2s ease; }
 
         .mobile-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(10px); border-top: 1px solid var(--card-border); display: flex; justify-content: space-around; padding: 8px 0; z-index: 200; }
         .mobile-nav-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: none; color: var(--text-muted); font-size: 0.75rem; font-weight: 500; cursor: pointer; padding: 6px 16px; border-radius: 6px; transition: color 0.15s ease; }
@@ -390,11 +544,46 @@ BARCODE_HTML = """
             <span>Hospital Assets</span>
             <span class="brand-badge">Inventory</span>
         </div>
-        <div class="ip-badge" onclick="switchTab('pair')">
-            <span>Mobile Address:</span>
-            <strong>__LOCAL_IP__:__PORT__</strong>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <div class="ip-badge" onclick="switchTab('pair')">
+                <span>Mobile:</span>
+                <strong>__LOCAL_IP__:__PORT__</strong>
+            </div>
+            <div id="user-header-status">
+                <button class="btn btn-primary" style="padding: 5px 12px; min-height: 32px; font-size: 0.8rem;" onclick="openAuthModal('login')">Sign In</button>
+            </div>
         </div>
     </header>
+
+    <!-- AUTH MODAL -->
+    <div id="auth-modal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; padding: 16px;">
+        <div class="card" style="width: 100%; max-width: 400px; margin: 0; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--card-border); padding-bottom: 10px;">
+                <h3 id="auth-modal-title" style="font-size: 1rem; font-weight: 600; color: var(--text-main);">Sign In</h3>
+                <button onclick="closeAuthModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+            </div>
+            <div style="display: flex; gap: 4px; background: #f1f5f9; padding: 3px; border-radius: var(--radius-md); margin-bottom: 16px;">
+                <button type="button" class="tab-btn active" id="auth-tab-login" onclick="switchAuthTab('login')">Sign In</button>
+                <button type="button" class="tab-btn" id="auth-tab-register" onclick="switchAuthTab('register')">Register</button>
+            </div>
+            <form id="auth-form" onsubmit="handleAuthSubmit(event)">
+                <div class="form-group" id="group-fullname" style="display: none;">
+                    <label>Full Name</label>
+                    <input type="text" id="auth-fullname" class="form-control" placeholder="e.g. Sarah Jenkins">
+                </div>
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="auth-username" class="form-control" placeholder="Enter username" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="auth-password" class="form-control" placeholder="Enter password" required autocomplete="current-password">
+                </div>
+                <div id="auth-error" style="display: none; color: #dc2626; font-size: 0.8rem; margin-bottom: 12px; font-weight: 500;"></div>
+                <button type="submit" id="auth-submit-btn" class="btn btn-primary" style="width: 100%;">Sign In</button>
+            </form>
+        </div>
+    </div>
 
     <div class="container">
         <div class="tab-nav">
@@ -443,7 +632,7 @@ BARCODE_HTML = """
                 </div>
 
                 <div class="form-row" style="margin-bottom: 16px;">
-                    <input type="text" id="inv-search" class="form-control" placeholder="Search by name, ID, or room..." oninput="loadInventory()">
+                    <input type="text" id="inv-search" class="form-control" placeholder="Search by name, ID, room, or user..." oninput="loadInventory()">
                     <select id="inv-dept-filter" class="form-control" onchange="loadInventory()">
                         <option value="">All Departments</option>
                         <option value="Admin">Admin</option>
@@ -468,11 +657,12 @@ BARCODE_HTML = """
                                 <th>Department</th>
                                 <th>Location</th>
                                 <th>Status</th>
+                                <th>Entered By</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="inventory-table-body">
-                            <tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 20px;">Loading inventory...</td></tr>
+                            <tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 20px;">Loading inventory...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -521,6 +711,131 @@ BARCODE_HTML = """
     <script>
         const SERVER_URL = window.location.origin;
         let html5QrcodeScanner = null;
+        let authMode = 'login';
+        let currentUser = null;
+
+        function getAuthHeaders() {
+            const token = localStorage.getItem('auth_token');
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) {
+                headers['Authorization'] = 'Bearer ' + token;
+            }
+            return headers;
+        }
+
+        async function checkAuthOnLoad() {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                updateUserHeaderUI(null);
+                return;
+            }
+            try {
+                const res = await fetch('/api/me', { headers: getAuthHeaders() });
+                if (res.ok) {
+                    currentUser = await res.json();
+                    updateUserHeaderUI(currentUser);
+                } else {
+                    localStorage.removeItem('auth_token');
+                    currentUser = null;
+                    updateUserHeaderUI(null);
+                }
+            } catch (e) {
+                console.error("Auth check failed:", e);
+            }
+        }
+
+        function updateUserHeaderUI(user) {
+            const container = document.getElementById('user-header-status');
+            if (!container) return;
+            if (user) {
+                container.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span class="badge" style="background: #eff6ff; color: var(--accent); border-color: #bfdbfe; font-weight: 600;">
+                            ${user.username}
+                        </span>
+                        <button class="btn btn-outline" style="padding: 3px 8px; min-height: 28px; font-size: 0.76rem;" onclick="logoutUser()">Sign Out</button>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <button class="btn btn-primary" style="padding: 5px 12px; min-height: 32px; font-size: 0.8rem;" onclick="openAuthModal('login')">Sign In</button>
+                `;
+            }
+        }
+
+        function openAuthModal(mode = 'login') {
+            switchAuthTab(mode);
+            document.getElementById('auth-modal').style.display = 'flex';
+        }
+
+        function closeAuthModal() {
+            document.getElementById('auth-modal').style.display = 'none';
+            document.getElementById('auth-error').style.display = 'none';
+        }
+
+        function switchAuthTab(mode) {
+            authMode = mode;
+            document.getElementById('auth-error').style.display = 'none';
+            if (mode === 'login') {
+                document.getElementById('auth-tab-login').classList.add('active');
+                document.getElementById('auth-tab-register').classList.remove('active');
+                document.getElementById('group-fullname').style.display = 'none';
+                document.getElementById('auth-modal-title').innerText = 'Sign In';
+                document.getElementById('auth-submit-btn').innerText = 'Sign In';
+            } else {
+                document.getElementById('auth-tab-register').classList.add('active');
+                document.getElementById('auth-tab-login').classList.remove('active');
+                document.getElementById('group-fullname').style.display = 'block';
+                document.getElementById('auth-modal-title').innerText = 'Register Account';
+                document.getElementById('auth-submit-btn').innerText = 'Create Account';
+            }
+        }
+
+        async function handleAuthSubmit(e) {
+            e.preventDefault();
+            const username = document.getElementById('auth-username').value.trim();
+            const password = document.getElementById('auth-password').value.trim();
+            const fullName = document.getElementById('auth-fullname').value.trim();
+            const errEl = document.getElementById('auth-error');
+            errEl.style.display = 'none';
+
+            const endpoint = authMode === 'login' ? '/api/login' : '/api/register';
+            const body = authMode === 'login' 
+                ? { username, password } 
+                : { username, password, full_name: fullName || username };
+
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    localStorage.setItem('auth_token', data.token);
+                    currentUser = { username: data.username, full_name: data.full_name, role: data.role };
+                    updateUserHeaderUI(currentUser);
+                    closeAuthModal();
+                    showToast(authMode === 'login' ? "Signed in successfully!" : "Account created!");
+                } else {
+                    errEl.innerText = data.detail || "Authentication failed";
+                    errEl.style.display = 'block';
+                }
+            } catch (err) {
+                errEl.innerText = "Network error";
+                errEl.style.display = 'block';
+            }
+        }
+
+        async function logoutUser() {
+            try {
+                await fetch('/api/logout', { method: 'POST', headers: getAuthHeaders() });
+            } catch (e) {}
+            localStorage.removeItem('auth_token');
+            currentUser = null;
+            updateUserHeaderUI(null);
+            showToast("Signed out");
+        }
 
         function playScanBeep() {
             try {
@@ -571,6 +886,7 @@ BARCODE_HTML = """
         window.addEventListener('DOMContentLoaded', () => {
             const urlEl = document.getElementById('mobile-url-display');
             if(urlEl) urlEl.innerText = window.location.origin;
+            checkAuthOnLoad();
             try { startBarcodeScanner(); } catch(e) {}
             try { loadInventory(); } catch(e) {}
         });
@@ -725,6 +1041,14 @@ BARCODE_HTML = """
                             <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">STATUS</div>
                             <div style="font-weight: 500; color: var(--text-main); margin-top: 2px;">${asset.status}</div>
                         </div>
+                        <div>
+                            <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">ENTERED BY</div>
+                            <div style="font-weight: 500; color: var(--text-main); margin-top: 2px;">${asset.created_by || 'System'}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">LAST UPDATED BY</div>
+                            <div style="font-weight: 500; color: var(--text-main); margin-top: 2px;">${asset.updated_by || 'System'}</div>
+                        </div>
                         ${asset.serial_number ? `
                         <div style="grid-column: span 2;">
                             <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">SERIAL / MODEL</div>
@@ -825,13 +1149,14 @@ BARCODE_HTML = """
 
         function renderNewAssetForm(assetId) {
             const resCard = document.getElementById('scan-result-card');
+            const signedInInfo = currentUser ? `<div style="font-size: 0.8rem; color: var(--accent); margin-bottom: 12px; font-weight: 500;">Signing as: <strong>${currentUser.username}</strong></div>` : '';
             resCard.innerHTML = `
                 <div class="card">
                     <div class="card-title">
                         <span>Register New Asset</span>
                         <span class="badge"><span class="badge-dot maintenance"></span>New Barcode</span>
                     </div>
-
+                    ${signedInInfo}
                     <form id="new-asset-form" onsubmit="submitNewAsset(event)">
                         <div class="form-group">
                             <label>Scanned Barcode ID</label>
@@ -923,7 +1248,7 @@ BARCODE_HTML = """
 
             const res = await fetch('/api/assets', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getAuthHeaders(),
                 body: JSON.stringify(payload)
             });
 
@@ -950,7 +1275,7 @@ BARCODE_HTML = """
 
             const res = await fetch('/api/assets/' + encodeURIComponent(assetId), {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getAuthHeaders(),
                 body: JSON.stringify(payload)
             });
 
@@ -979,7 +1304,7 @@ BARCODE_HTML = """
                 if(!tbody) return;
                 
                 if(!assets || assets.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 24px;">No assets registered yet. Scan a barcode to add one.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 24px;">No assets registered yet. Scan a barcode to add one.</td></tr>';
                     return;
                 }
 
@@ -992,6 +1317,7 @@ BARCODE_HTML = """
                             <td>${a.department}</td>
                             <td>${a.location}</td>
                             <td>${getStatusBadgeHtml(a.status)}</td>
+                            <td><span style="font-size: 0.8rem; color: var(--text-muted);">${a.created_by || 'System'}</span></td>
                             <td>
                                 <button class="btn btn-secondary" style="padding: 4px 10px; min-height: 30px; font-size: 0.78rem;" onclick="switchTab('scan'); handleScannedId('${a.asset_id}');">Edit</button>
                                 <button class="btn btn-danger" style="padding: 4px 10px; min-height: 30px; font-size: 0.78rem;" onclick="deleteAsset('${a.asset_id}')">Delete</button>
@@ -1006,7 +1332,10 @@ BARCODE_HTML = """
 
         async function deleteAsset(assetId) {
             if(!confirm("Are you sure you want to delete barcode " + assetId + " from database?")) return;
-            const res = await fetch('/api/assets/' + encodeURIComponent(assetId), { method: 'DELETE' });
+            const res = await fetch('/api/assets/' + encodeURIComponent(assetId), { 
+                method: 'DELETE',
+                headers: getAuthHeaders()
+            });
             if(res.ok) {
                 showToast("Asset deleted");
                 loadInventory();
