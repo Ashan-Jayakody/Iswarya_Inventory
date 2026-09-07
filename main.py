@@ -243,6 +243,14 @@ def register_user(user_data: RegisterModel):
     if not username or not password:
         raise HTTPException(status_code=400, detail="Username and password are required")
     
+    if len(password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters long")
+    
+    has_letter = any(c.isalpha() for c in password)
+    has_digit = any(c.isdigit() for c in password)
+    if not (has_letter and has_digit):
+        raise HTTPException(status_code=400, detail="Password must be alphanumeric (contain both letters and numbers)")
+    
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT username FROM users WHERE username ILIKE %s", (username,))
@@ -348,7 +356,9 @@ def get_asset(asset_id: str):
 @app.post("/api/assets")
 def create_asset(asset: AssetModel, authorization: Optional[str] = Header(None)):
     user = get_current_user_from_header(authorization)
-    creator = user["username"] if user else (asset.created_by or "System")
+    if not user:
+        raise HTTPException(status_code=401, detail="Sign in required to add items to inventory")
+    creator = user["username"]
     
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -375,7 +385,9 @@ def create_asset(asset: AssetModel, authorization: Optional[str] = Header(None))
 @app.put("/api/assets/{asset_id}")
 def update_asset(asset_id: str, asset: AssetUpdateModel, authorization: Optional[str] = Header(None)):
     user = get_current_user_from_header(authorization)
-    updater = user["username"] if user else (asset.updated_by or "System")
+    if not user:
+        raise HTTPException(status_code=401, detail="Sign in required to update inventory items")
+    updater = user["username"]
 
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -401,7 +413,10 @@ def update_asset(asset_id: str, asset: AssetUpdateModel, authorization: Optional
     return {"message": "Asset updated successfully", "asset_id": asset_id, "updated_by": updater}
 
 @app.delete("/api/assets/{asset_id}")
-def delete_asset(asset_id: str):
+def delete_asset(asset_id: str, authorization: Optional[str] = Header(None)):
+    user = get_current_user_from_header(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="Sign in required to delete inventory items")
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM assets WHERE asset_id = %s", (asset_id.strip(),))
@@ -578,6 +593,7 @@ BARCODE_HTML = """
                 <div class="form-group">
                     <label>Password</label>
                     <input type="password" id="auth-password" class="form-control" placeholder="Enter password" required autocomplete="current-password">
+                    <div id="password-hint" style="display: none; font-size: 0.74rem; color: var(--text-muted); margin-top: 5px;">Must be min 6 characters with letters and numbers.</div>
                 </div>
                 <div id="auth-error" style="display: none; color: #dc2626; font-size: 0.8rem; margin-bottom: 12px; font-weight: 500;"></div>
                 <button type="submit" id="auth-submit-btn" class="btn btn-primary" style="width: 100%;">Sign In</button>
@@ -776,16 +792,19 @@ BARCODE_HTML = """
         function switchAuthTab(mode) {
             authMode = mode;
             document.getElementById('auth-error').style.display = 'none';
+            const hint = document.getElementById('password-hint');
             if (mode === 'login') {
                 document.getElementById('auth-tab-login').classList.add('active');
                 document.getElementById('auth-tab-register').classList.remove('active');
                 document.getElementById('group-fullname').style.display = 'none';
+                if (hint) hint.style.display = 'none';
                 document.getElementById('auth-modal-title').innerText = 'Sign In';
                 document.getElementById('auth-submit-btn').innerText = 'Sign In';
             } else {
                 document.getElementById('auth-tab-register').classList.add('active');
                 document.getElementById('auth-tab-login').classList.remove('active');
                 document.getElementById('group-fullname').style.display = 'block';
+                if (hint) hint.style.display = 'block';
                 document.getElementById('auth-modal-title').innerText = 'Register Account';
                 document.getElementById('auth-submit-btn').innerText = 'Create Account';
             }
@@ -798,6 +817,16 @@ BARCODE_HTML = """
             const fullName = document.getElementById('auth-fullname').value.trim();
             const errEl = document.getElementById('auth-error');
             errEl.style.display = 'none';
+
+            if (authMode === 'register') {
+                const hasLetter = /[a-zA-Z]/.test(password);
+                const hasDigit = /[0-9]/.test(password);
+                if (password.length < 6 || !hasLetter || !hasDigit) {
+                    errEl.innerText = "Password must be at least 6 characters long and contain both letters and numbers";
+                    errEl.style.display = 'block';
+                    return;
+                }
+            }
 
             const endpoint = authMode === 'login' ? '/api/login' : '/api/register';
             const body = authMode === 'login' 
@@ -1149,14 +1178,20 @@ BARCODE_HTML = """
 
         function renderNewAssetForm(assetId) {
             const resCard = document.getElementById('scan-result-card');
-            const signedInInfo = currentUser ? `<div style="font-size: 0.8rem; color: var(--accent); margin-bottom: 12px; font-weight: 500;">Signing as: <strong>${currentUser.username}</strong></div>` : '';
+            const authNotice = !currentUser ? `
+                <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 0.84rem; color: #1e40af;">
+                    <span><strong>Sign in required</strong> to register items into inventory.</span>
+                    <button type="button" class="btn btn-primary" style="padding: 4px 12px; min-height: 32px; font-size: 0.8rem;" onclick="openAuthModal('login')">Sign In</button>
+                </div>
+            ` : `<div style="font-size: 0.8rem; color: var(--accent); margin-bottom: 12px; font-weight: 500;">Signing as: <strong>${currentUser.username}</strong></div>`;
+
             resCard.innerHTML = `
                 <div class="card">
                     <div class="card-title">
                         <span>Register New Asset</span>
                         <span class="badge"><span class="badge-dot maintenance"></span>New Barcode</span>
                     </div>
-                    ${signedInInfo}
+                    ${authNotice}
                     <form id="new-asset-form" onsubmit="submitNewAsset(event)">
                         <div class="form-group">
                             <label>Scanned Barcode ID</label>
@@ -1235,6 +1270,11 @@ BARCODE_HTML = """
 
         async function submitNewAsset(e) {
             e.preventDefault();
+            if (!currentUser) {
+                openAuthModal('login');
+                showToast("Please sign in to add items to inventory");
+                return;
+            }
             const payload = {
                 asset_id: document.getElementById('new-id').value,
                 name: document.getElementById('new-name').value,
@@ -1256,6 +1296,14 @@ BARCODE_HTML = """
                 showToast("Asset Saved Successfully!");
                 handleScannedId(payload.asset_id);
             } else {
+                if (res.status === 401) {
+                    localStorage.removeItem('auth_token');
+                    currentUser = null;
+                    updateUserHeaderUI(null);
+                    openAuthModal('login');
+                    showToast("Please sign in to add items to inventory");
+                    return;
+                }
                 const data = await res.json();
                 alert("Error saving asset: " + (data.detail || "Failed"));
             }
@@ -1263,6 +1311,11 @@ BARCODE_HTML = """
 
         async function submitAssetUpdate(e, assetId) {
             e.preventDefault();
+            if (!currentUser) {
+                openAuthModal('login');
+                showToast("Please sign in to update items");
+                return;
+            }
             const payload = {
                 name: document.getElementById('edit-name').value,
                 category: document.getElementById('edit-category').value,
@@ -1283,6 +1336,14 @@ BARCODE_HTML = """
                 showToast("Asset Updated!");
                 handleScannedId(assetId);
             } else {
+                if (res.status === 401) {
+                    localStorage.removeItem('auth_token');
+                    currentUser = null;
+                    updateUserHeaderUI(null);
+                    openAuthModal('login');
+                    showToast("Please sign in to update items");
+                    return;
+                }
                 alert("Failed to update asset.");
             }
         }
@@ -1331,6 +1392,11 @@ BARCODE_HTML = """
         }
 
         async function deleteAsset(assetId) {
+            if (!currentUser) {
+                openAuthModal('login');
+                showToast("Please sign in to delete inventory items");
+                return;
+            }
             if(!confirm("Are you sure you want to delete barcode " + assetId + " from database?")) return;
             const res = await fetch('/api/assets/' + encodeURIComponent(assetId), { 
                 method: 'DELETE',
@@ -1339,6 +1405,12 @@ BARCODE_HTML = """
             if(res.ok) {
                 showToast("Asset deleted");
                 loadInventory();
+            } else if (res.status === 401) {
+                localStorage.removeItem('auth_token');
+                currentUser = null;
+                updateUserHeaderUI(null);
+                openAuthModal('login');
+                showToast("Please sign in to delete inventory items");
             }
         }
 
