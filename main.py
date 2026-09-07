@@ -464,16 +464,16 @@ BARCODE_HTML = """
 
     <style>
         :root {
-            --bg-color: #f8fafc;
-            --card-bg: #ffffff;
-            --card-border: #e2e8f0;
-            --input-bg: #ffffff;
-            --input-border: #cbd5e1;
-            --accent: #2563eb;
-            --accent-hover: #1d4ed8;
-            --text-main: #0f172a;
-            --text-muted: #64748b;
-            --text-subtle: #94a3b8;
+            --bg-color: #0b0f17;
+            --card-bg: #111827;
+            --card-border: #1f293d;
+            --input-bg: #0d1322;
+            --input-border: #2a374f;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --text-subtle: #64748b;
             --radius-md: 6px;
             --radius-lg: 10px;
         }
@@ -481,25 +481,25 @@ BARCODE_HTML = """
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
         body { background-color: var(--bg-color); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; padding-bottom: 76px; }
 
-        header { background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(10px); border-bottom: 1px solid var(--card-border); padding: 12px 20px; position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+        header { background: rgba(17, 24, 39, 0.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--card-border); padding: 12px 20px; position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
         .brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-main); }
-        .brand-badge { background: #eff6ff; color: var(--accent); border: 1px solid #bfdbfe; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; }
-        .ip-badge { background: #f1f5f9; color: var(--text-muted); border: 1px solid var(--card-border); padding: 5px 10px; border-radius: 6px; font-size: 0.76rem; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s ease; }
+        .brand-badge { background: rgba(59, 130, 246, 0.12); color: #60a5fa; border: 1px solid rgba(96, 165, 250, 0.3); padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; }
+        .ip-badge { background: #162032; color: var(--text-muted); border: 1px solid var(--card-border); padding: 5px 10px; border-radius: 6px; font-size: 0.76rem; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s ease; }
         .ip-badge strong { color: var(--text-main); font-weight: 600; }
-        .ip-badge:hover { border-color: var(--input-border); background: #e2e8f0; }
+        .ip-badge:hover { border-color: var(--accent); background: #1e293b; }
 
         .container { width: 100%; max-width: 860px; margin: 0 auto; padding: 20px 16px; flex: 1; }
 
-        .tab-nav { display: flex; gap: 4px; margin-bottom: 20px; background: #f1f5f9; padding: 3px; border-radius: var(--radius-md); border: 1px solid var(--card-border); }
+        .tab-nav { display: flex; gap: 4px; margin-bottom: 20px; background: #0d1322; padding: 3px; border-radius: var(--radius-md); border: 1px solid var(--card-border); }
         .tab-btn { flex: 1; padding: 9px 12px; border: none; background: transparent; color: var(--text-muted); font-weight: 500; font-size: 0.85rem; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.15s ease; }
-        .tab-btn.active { background: var(--card-bg) !important; color: var(--text-main) !important; border: 1px solid var(--card-border); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .tab-btn.active { background: var(--card-bg) !important; color: var(--text-main) !important; border: 1px solid #334155; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
 
         .tab-content { display: none !important; }
         .tab-content.active { display: block !important; animation: fadeIn 0.15s ease; }
 
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04); }
+        .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2); }
         .card-title { font-size: 0.92rem; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; color: var(--text-main); letter-spacing: -0.01em; }
 
         #reader-wrapper { position: relative; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--card-border); background: #000; min-height: 240px; }
@@ -513,12 +513,12 @@ BARCODE_HTML = """
         .btn { min-height: 42px; padding: 9px 16px; border-radius: var(--radius-md); border: 1px solid transparent; font-weight: 500; font-size: 0.86rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.15s ease; text-decoration: none; }
         .btn-primary { background: var(--accent); color: #ffffff; border-color: var(--accent); }
         .btn-primary:hover { background: var(--accent-hover); }
-        .btn-secondary { background: #f1f5f9; color: var(--text-main); border-color: var(--input-border); }
-        .btn-secondary:hover { background: #e2e8f0; }
+        .btn-secondary { background: #1e293b; color: var(--text-main); border-color: #334155; }
+        .btn-secondary:hover { background: #334155; }
         .btn-outline { background: transparent; color: var(--text-muted); border-color: var(--card-border); }
-        .btn-outline:hover { background: #f1f5f9; color: var(--text-main); }
-        .btn-danger { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
-        .btn-danger:hover { background: #fee2e2; }
+        .btn-outline:hover { background: #1e293b; color: var(--text-main); }
+        .btn-danger { background: rgba(239, 68, 68, 0.12); color: #f87171; border-color: rgba(248, 113, 113, 0.3); }
+        .btn-danger:hover { background: rgba(239, 68, 68, 0.22); }
 
         .file-upload-btn { position: relative; overflow: hidden; width: 100%; }
         .file-upload-btn input[type=file] { position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
@@ -526,12 +526,13 @@ BARCODE_HTML = """
         .form-group { margin-bottom: 14px; }
         .form-group label { display: block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 6px; }
         .form-control { width: 100%; min-height: 42px; padding: 9px 12px; background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 6px; color: var(--text-main); font-size: 0.9rem; outline: none; transition: border-color 0.15s ease; }
-        .form-control:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        .form-control:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15); }
+        select.form-control option { background-color: #111827; color: #f1f5f9; }
 
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
 
-        .badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 500; background: #f1f5f9; border: 1px solid var(--card-border); color: var(--text-main); }
+        .badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 500; background: #162032; border: 1px solid #2a374f; color: var(--text-main); }
         .badge-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
         .badge-dot.active { background: #10b981; }
         .badge-dot.maintenance { background: #f59e0b; }
@@ -539,15 +540,15 @@ BARCODE_HTML = """
 
         .table-responsive { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.86rem; }
-        th { background: #f8fafc; padding: 10px 14px; color: var(--text-muted); font-weight: 600; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--card-border); }
+        th { background: #0d1322; padding: 10px 14px; color: var(--text-muted); font-weight: 600; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--card-border); }
         td { padding: 12px 14px; border-bottom: 1px solid var(--card-border); color: var(--text-main); }
-        tr:hover td { background: #f8fafc; }
+        tr:hover td { background: #162032; }
 
         .qr-center { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
 
-        #toast { position: fixed; bottom: 76px; left: 50%; transform: translateX(-50%); background: #0f172a; border: 1px solid #1e293b; color: #ffffff; padding: 10px 20px; border-radius: 20px; font-size: 0.82rem; font-weight: 500; box-shadow: 0 4px 14px rgba(0,0,0,0.12); display: none; z-index: 2000; transition: all 0.2s ease; }
+        #toast { position: fixed; bottom: 76px; left: 50%; transform: translateX(-50%); background: #1e293b; border: 1px solid #334155; color: #f8fafc; padding: 10px 20px; border-radius: 20px; font-size: 0.82rem; font-weight: 500; box-shadow: 0 8px 20px rgba(0,0,0,0.4); display: none; z-index: 2000; transition: all 0.2s ease; }
 
-        .mobile-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(10px); border-top: 1px solid var(--card-border); display: flex; justify-content: space-around; padding: 8px 0; z-index: 200; }
+        .mobile-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(17, 24, 39, 0.95); backdrop-filter: blur(12px); border-top: 1px solid var(--card-border); display: flex; justify-content: space-around; padding: 8px 0; z-index: 200; }
         .mobile-nav-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: none; color: var(--text-muted); font-size: 0.75rem; font-weight: 500; cursor: pointer; padding: 6px 16px; border-radius: 6px; transition: color 0.15s ease; }
         .mobile-nav-btn.active { color: var(--accent); font-weight: 600; }
     </style>
@@ -556,7 +557,7 @@ BARCODE_HTML = """
 
     <header>
         <div class="brand">
-            <span>Hospital Assets</span>
+            <span>Risky Assets</span>
             <span class="brand-badge">Inventory</span>
         </div>
         <div style="display: flex; align-items: center; gap: 8px;">
@@ -571,13 +572,13 @@ BARCODE_HTML = """
     </header>
 
     <!-- AUTH MODAL -->
-    <div id="auth-modal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center; padding: 16px;">
-        <div class="card" style="width: 100%; max-width: 400px; margin: 0; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);">
+    <div id="auth-modal" style="display: none; position: fixed; inset: 0; background: rgba(3, 7, 18, 0.75); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center; padding: 16px;">
+        <div class="card" style="width: 100%; max-width: 400px; margin: 0; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--card-border); padding-bottom: 10px;">
                 <h3 id="auth-modal-title" style="font-size: 1rem; font-weight: 600; color: var(--text-main);">Sign In</h3>
                 <button onclick="closeAuthModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted);">&times;</button>
             </div>
-            <div style="display: flex; gap: 4px; background: #f1f5f9; padding: 3px; border-radius: var(--radius-md); margin-bottom: 16px;">
+            <div style="display: flex; gap: 4px; background: #0d1322; padding: 3px; border-radius: var(--radius-md); margin-bottom: 16px; border: 1px solid var(--card-border);">
                 <button type="button" class="tab-btn active" id="auth-tab-login" onclick="switchAuthTab('login')">Sign In</button>
                 <button type="button" class="tab-btn" id="auth-tab-register" onclick="switchAuthTab('register')">Register</button>
             </div>
@@ -595,7 +596,7 @@ BARCODE_HTML = """
                     <input type="password" id="auth-password" class="form-control" placeholder="Enter password" required autocomplete="current-password">
                     <div id="password-hint" style="display: none; font-size: 0.74rem; color: var(--text-muted); margin-top: 5px;">Must be min 6 characters with letters and numbers.</div>
                 </div>
-                <div id="auth-error" style="display: none; color: #dc2626; font-size: 0.8rem; margin-bottom: 12px; font-weight: 500;"></div>
+                <div id="auth-error" style="display: none; color: #f87171; font-size: 0.8rem; margin-bottom: 12px; font-weight: 500;"></div>
                 <button type="submit" id="auth-submit-btn" class="btn btn-primary" style="width: 100%;">Sign In</button>
             </form>
         </div>
@@ -693,12 +694,12 @@ BARCODE_HTML = """
                     Ensure your mobile device is connected to the <strong>same network</strong> as this server, then open this address in Chrome or Safari:
                 </p>
 
-                <div style="background: #f8fafc; border: 1px solid var(--card-border); padding: 14px 20px; border-radius: var(--radius-md); text-align: center; margin: 20px 0; width: 100%; max-width: 440px;">
+                <div style="background: #0d1322; border: 1px solid var(--card-border); padding: 14px 20px; border-radius: var(--radius-md); text-align: center; margin: 20px 0; width: 100%; max-width: 440px;">
                     <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em;">Mobile Server Address</div>
                     <strong id="mobile-url-display" style="font-size: 1.25rem; color: var(--accent);">__SERVER_URL__</strong>
                 </div>
 
-                <div style="text-align: left; background: var(--bg-color); border: 1px solid var(--card-border); padding: 16px; border-radius: var(--radius-md); font-size: 0.85rem; width: 100%; max-width: 500px; color: var(--text-muted);">
+                <div style="text-align: left; background: #0d1322; border: 1px solid var(--card-border); padding: 16px; border-radius: var(--radius-md); font-size: 0.85rem; width: 100%; max-width: 500px; color: var(--text-muted);">
                     <strong style="color: var(--text-main); font-size: 0.88rem;">Scanning Guidelines</strong>
                     <ul style="margin-left: 18px; margin-top: 6px; line-height: 1.6;">
                         <li><strong>Photo Capture:</strong> Tap <strong>Upload or Capture Barcode Image</strong> to snap physical barcode tags using your device camera.</li>
@@ -766,7 +767,7 @@ BARCODE_HTML = """
             if (user) {
                 container.innerHTML = `
                     <div style="display: flex; align-items: center; gap: 6px;">
-                        <span class="badge" style="background: #eff6ff; color: var(--accent); border-color: #bfdbfe; font-weight: 600;">
+                        <span class="badge" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border-color: rgba(96, 165, 250, 0.3); font-weight: 600;">
                             ${user.username}
                         </span>
                         <button class="btn btn-outline" style="padding: 3px 8px; min-height: 28px; font-size: 0.76rem;" onclick="logoutUser()">Sign Out</button>
@@ -1053,7 +1054,7 @@ BARCODE_HTML = """
                         ${getStatusBadgeHtml(asset.status)}
                     </div>
 
-                    <div style="background: #f8fafc; border: 1px solid var(--card-border); border-radius: 6px; padding: 14px; margin-bottom: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.88rem;">
+                    <div style="background: #0d1322; border: 1px solid var(--card-border); border-radius: 6px; padding: 14px; margin-bottom: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.88rem;">
                         <div>
                             <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;">CATEGORY</div>
                             <div style="font-weight: 500; color: var(--text-main); margin-top: 2px;">${asset.category || 'General'}</div>
@@ -1179,7 +1180,7 @@ BARCODE_HTML = """
         function renderNewAssetForm(assetId) {
             const resCard = document.getElementById('scan-result-card');
             const authNotice = !currentUser ? `
-                <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 0.84rem; color: #1e40af;">
+                <div style="background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(96, 165, 250, 0.3); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 0.84rem; color: #93c5fd;">
                     <span><strong>Sign in required</strong> to register items into inventory.</span>
                     <button type="button" class="btn btn-primary" style="padding: 4px 12px; min-height: 32px; font-size: 0.8rem;" onclick="openAuthModal('login')">Sign In</button>
                 </div>
@@ -1195,8 +1196,8 @@ BARCODE_HTML = """
                     <form id="new-asset-form" onsubmit="submitNewAsset(event)">
                         <div class="form-group">
                             <label>Scanned Barcode ID</label>
-                            <input type="text" id="new-id" class="form-control" value="${assetId}" readonly style="background: #f8fafc; font-weight: 600; color: var(--accent);">
-                        </div>
+                            <input type="text" id="new-id" class="form-control" value="${assetId}" readonly style="background: #0d1322; font-weight: 600; color: #60a5fa;">
+                        </div>`
 
                         <div class="form-group">
                             <label>Asset Name</label>
@@ -1435,7 +1436,7 @@ def read_root():
 
 if __name__ == "__main__":
     print(f"\n=======================================================")
-    print(f"HOSPITAL ASSETS BARCODE SCANNER SERVER IS READY!")
+    print(f"RISKY ASSETS BARCODE SCANNER SERVER IS READY!")
     print(f"Local Laptop Access : http://localhost:{PORT}")
     print(f"Mobile Phone Access: http://{LOCAL_IP}:{PORT}")
     print(f"=======================================================\n")
