@@ -9,14 +9,36 @@ import sys
 import secrets
 import hashlib
 import hmac
+import time
+import logging
+from collections import defaultdict
 from typing import Optional
-from fastapi import FastAPI, HTTPException, Query, Form, Header
+from fastapi import FastAPI, HTTPException, Query, Form, Header, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import uvicorn
 
 load_dotenv()
+
+# Configure Security Logger
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+logger = logging.getLogger("security")
+
+# Sliding window rate limiter for sensitive endpoints (max 5 requests per 60 seconds per IP)
+RATE_LIMIT_STORE = defaultdict(list)
+MAX_AUTH_ATTEMPTS = 5
+RATE_LIMIT_WINDOW = 60
+
+def check_rate_limit(ip_address: str) -> bool:
+    now = time.time()
+    timestamps = RATE_LIMIT_STORE[ip_address]
+    timestamps = [t for t in timestamps if now - t < RATE_LIMIT_WINDOW]
+    RATE_LIMIT_STORE[ip_address] = timestamps
+    if len(timestamps) >= MAX_AUTH_ATTEMPTS:
+        return False
+    timestamps.append(now)
+    return True
 
 app = FastAPI(title="Hospital Asset Barcode & QR Scanner")
 
@@ -27,6 +49,23 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com data:; "
+        "img-src 'self' data: blob:; "
+        "connect-src 'self' blob:;"
+    )
+    return response
 
 PORT = int(os.getenv("PORT", 8000))
 
@@ -120,9 +159,12 @@ def init_db():
             CREATE TABLE IF NOT EXISTS sessions (
                 token VARCHAR(255) PRIMARY KEY,
                 username VARCHAR(255) REFERENCES users(username) ON DELETE CASCADE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                expires_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP + INTERVAL '24 hours')
             )
         """)
+        cursor.execute("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP + INTERVAL '24 hours')")
+        cursor.execute("DELETE FROM sessions WHERE expires_at < CURRENT_TIMESTAMP")
         conn.commit()
         cursor.close()
         conn.close()
@@ -163,52 +205,54 @@ def get_current_user_from_header(authorization: Optional[str] = Header(None)) ->
             SELECT u.username, u.full_name, u.role 
             FROM sessions s 
             JOIN users u ON s.username = u.username 
-            WHERE s.token = %s
+            WHERE s.token = %s AND (s.expires_at IS NULL OR s.expires_at > CURRENT_TIMESTAMP)
         """, (token,))
         user = cursor.fetchone()
         cursor.close()
         conn.close()
         return dict(user) if user else None
-    except Exception:
+    except Exception as e:
+        logger.error(f"Error validating user session token: {e}")
         return None
 
 class RegisterModel(BaseModel):
-    username: str
-    password: str
-    full_name: Optional[str] = ""
+    username: str = Field(..., min_length=1, max_length=50)
+    password: str = Field(..., min_length=6, max_length=128)
+    full_name: Optional[str] = Field("", max_length=100)
 
 class LoginModel(BaseModel):
-    username: str
-    password: str
+    username: str = Field(..., min_length=1, max_length=50)
+    password: str = Field(..., min_length=1, max_length=128)
 
 class AssetModel(BaseModel):
-    asset_id: str = Field(..., description="Barcode or QR Code ID")
-    name: str
-    category: str
-    department: str
-    location: str
-    status: str
-    serial_number: Optional[str] = ""
-    notes: Optional[str] = ""
-    created_by: Optional[str] = "System"
-    updated_by: Optional[str] = "System"
+    asset_id: str = Field(..., min_length=1, max_length=100, description="Barcode or QR Code ID")
+    name: str = Field(..., min_length=1, max_length=255)
+    category: str = Field(..., min_length=1, max_length=100)
+    department: str = Field(..., min_length=1, max_length=100)
+    location: str = Field(..., min_length=1, max_length=255)
+    status: str = Field(..., min_length=1, max_length=50)
+    serial_number: Optional[str] = Field("", max_length=100)
+    notes: Optional[str] = Field("", max_length=1000)
+    created_by: Optional[str] = Field("System", max_length=100)
+    updated_by: Optional[str] = Field("System", max_length=100)
 
 class AssetUpdateModel(BaseModel):
-    name: str
-    category: str
-    department: str
-    location: str
-    status: str
-    serial_number: Optional[str] = ""
-    notes: Optional[str] = ""
-    updated_by: Optional[str] = "System"
-
-@app.get("/api/network-info")
-def get_network_info():
-    return {"local_ip": LOCAL_IP, "port": PORT, "server_url": SERVER_URL}
+    name: str = Field(..., min_length=1, max_length=255)
+    category: str = Field(..., min_length=1, max_length=100)
+    department: str = Field(..., min_length=1, max_length=100)
+    location: str = Field(..., min_length=1, max_length=255)
+    status: str = Field(..., min_length=1, max_length=50)
+    serial_number: Optional[str] = Field("", max_length=100)
+    notes: Optional[str] = Field("", max_length=1000)
+    updated_by: Optional[str] = Field("System", max_length=100)
 
 @app.post("/api/register")
-def register_user(user_data: RegisterModel):
+def register_user(user_data: RegisterModel, request: Request):
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    if not check_rate_limit(client_ip):
+        logger.warning(f"Rate limit exceeded on /api/register from IP: {client_ip}")
+        raise HTTPException(status_code=429, detail="Too many requests. Please wait 60 seconds before trying again.")
+
     username = user_data.username.strip()
     password = user_data.password.strip()
     full_name = user_data.full_name.strip() if user_data.full_name else username
@@ -218,6 +262,9 @@ def register_user(user_data: RegisterModel):
     
     if len(password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters long")
+
+    if len(password) > 128:
+        raise HTTPException(status_code=400, detail="Password exceeds maximum allowed length (128 characters)")
     
     has_letter = any(c.isalpha() for c in password)
     has_digit = any(c.isdigit() for c in password)
@@ -230,6 +277,7 @@ def register_user(user_data: RegisterModel):
     if cursor.fetchone():
         cursor.close()
         conn.close()
+        logger.warning(f"Registration failed - username '{username}' already exists (IP: {client_ip})")
         raise HTTPException(status_code=400, detail="Username already exists")
     
     cursor.execute("SELECT COUNT(*) FROM users")
@@ -243,15 +291,22 @@ def register_user(user_data: RegisterModel):
     """, (username, pwd_hash, full_name, role))
     
     token = secrets.token_urlsafe(32)
-    cursor.execute("INSERT INTO sessions (token, username) VALUES (%s, %s)", (token, username))
+    expires_at = datetime.datetime.now() + datetime.timedelta(hours=24)
+    cursor.execute("INSERT INTO sessions (token, username, expires_at) VALUES (%s, %s, %s)", (token, username, expires_at))
     
     conn.commit()
     cursor.close()
     conn.close()
+    logger.info(f"User '{username}' registered successfully with role '{role}' (IP: {client_ip})")
     return {"message": "Account created successfully", "token": token, "username": username, "full_name": full_name, "role": role}
 
 @app.post("/api/login")
-def login_user(credentials: LoginModel):
+def login_user(credentials: LoginModel, request: Request):
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    if not check_rate_limit(client_ip):
+        logger.warning(f"Rate limit exceeded on /api/login from IP: {client_ip}")
+        raise HTTPException(status_code=429, detail="Too many requests. Please wait 60 seconds before trying again.")
+
     username = credentials.username.strip()
     password = credentials.password.strip()
     
@@ -263,13 +318,16 @@ def login_user(credentials: LoginModel):
     if not user or not verify_password(password, user["password_hash"]):
         cursor.close()
         conn.close()
+        logger.warning(f"Failed login attempt for username '{username}' (IP: {client_ip})")
         raise HTTPException(status_code=401, detail="Invalid username or password")
     
     token = secrets.token_urlsafe(32)
-    cursor.execute("INSERT INTO sessions (token, username) VALUES (%s, %s)", (token, user["username"]))
+    expires_at = datetime.datetime.now() + datetime.timedelta(hours=24)
+    cursor.execute("INSERT INTO sessions (token, username, expires_at) VALUES (%s, %s, %s)", (token, user["username"], expires_at))
     conn.commit()
     cursor.close()
     conn.close()
+    logger.info(f"User '{user['username']}' logged in successfully (IP: {client_ip})")
     return {"message": "Logged in successfully", "token": token, "username": user["username"], "full_name": user["full_name"], "role": user["role"]}
 
 @app.get("/api/me")
@@ -292,7 +350,10 @@ def logout_user(authorization: Optional[str] = Header(None)):
     return {"message": "Logged out successfully"}
 
 @app.get("/api/assets")
-def list_assets(search: Optional[str] = Query(None), department: Optional[str] = Query(None), status: Optional[str] = Query(None)):
+def list_assets(search: Optional[str] = Query(None), department: Optional[str] = Query(None), status: Optional[str] = Query(None), authorization: Optional[str] = Header(None)):
+    user = get_current_user_from_header(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="Sign in required to view inventory list")
     conn = get_db_connection()
     cursor = conn.cursor(cursor_factory=RealDictCursor)
     query = "SELECT * FROM assets WHERE 1=1"
@@ -353,6 +414,7 @@ def create_asset(asset: AssetModel, authorization: Optional[str] = Header(None))
     conn.commit()
     cursor.close()
     conn.close()
+    logger.info(f"Asset '{asset.asset_id}' created by user '{creator}'")
     return {"message": "Asset registered successfully", "asset_id": asset.asset_id, "created_by": creator}
 
 @app.put("/api/assets/{asset_id}")
@@ -383,13 +445,15 @@ def update_asset(asset_id: str, asset: AssetUpdateModel, authorization: Optional
     conn.commit()
     cursor.close()
     conn.close()
+    logger.info(f"Asset '{asset_id}' updated by user '{updater}'")
     return {"message": "Asset updated successfully", "asset_id": asset_id, "updated_by": updater}
 
 @app.delete("/api/assets/{asset_id}")
-def delete_asset(asset_id: str, authorization: Optional[str] = Header(None)):
+def delete_asset(asset_id: str, request: Request, authorization: Optional[str] = Header(None)):
     user = get_current_user_from_header(authorization)
     if not user:
         raise HTTPException(status_code=401, detail="Sign in required to delete inventory items")
+    client_ip = request.client.host if request.client else "127.0.0.1"
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM assets WHERE asset_id = %s", (asset_id.strip(),))
@@ -398,11 +462,16 @@ def delete_asset(asset_id: str, authorization: Optional[str] = Header(None)):
     cursor.close()
     conn.close()
     if deleted:
+        logger.info(f"Asset '{asset_id}' deleted by user '{user['username']}' (IP: {client_ip})")
         return {"message": "Asset deleted successfully"}
     raise HTTPException(status_code=404, detail="Asset not found")
 
 @app.get("/export")
-def export_csv():
+def export_csv(authorization: Optional[str] = Header(None), token: Optional[str] = Query(None)):
+    auth_header = authorization or (f"Bearer {token}" if token else None)
+    user = get_current_user_from_header(auth_header)
+    if not user:
+        raise HTTPException(status_code=401, detail="Sign in required to export inventory")
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT asset_id, name, category, department, location, status, serial_number, notes, created_by, updated_by, created_at, updated_at FROM assets ORDER BY updated_at DESC")
@@ -606,7 +675,7 @@ BARCODE_HTML = """
             <div class="card">
                 <div class="card-title">
                     <span>Asset Inventory</span>
-                    <a href="/export" class="btn btn-secondary" style="font-size: 0.8rem; min-height: 34px; padding: 4px 12px;">Export CSV</a>
+                    <a href="#" onclick="exportCsv(event)" class="btn btn-secondary" style="font-size: 0.8rem; min-height: 34px; padding: 4px 12px;">Export CSV</a>
                 </div>
 
                 <div class="form-row" style="margin-bottom: 16px;">
@@ -712,6 +781,7 @@ BARCODE_HTML = """
                     <button class="btn btn-primary" style="padding: 5px 12px; min-height: 32px; font-size: 0.8rem;" onclick="openAuthModal('login')">Sign In</button>
                 `;
             }
+            try { loadInventory(); } catch(e) {}
         }
 
         function openAuthModal(mode = 'login') {
@@ -1281,7 +1351,40 @@ BARCODE_HTML = """
             }
         }
 
+        function exportCsv(e) {
+            if (e) e.preventDefault();
+            if (!currentUser) {
+                openAuthModal('login');
+                showToast("Please sign in to export inventory data");
+                return;
+            }
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                openAuthModal('login');
+                return;
+            }
+            window.location.href = '/export?token=' + encodeURIComponent(token);
+        }
+
         async function loadInventory() {
+            const tbody = document.getElementById('inventory-table-body');
+            if(!tbody) return;
+
+            if (!currentUser) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 40px 20px;">
+                            <div style="max-width: 380px; margin: 0 auto; background: #0d1322; border: 1px solid var(--card-border); border-radius: var(--radius-lg); padding: 24px;">
+                                <div style="font-size: 1rem; font-weight: 600; color: var(--text-main); margin-bottom: 8px;">Sign In Required</div>
+                                <div style="font-size: 0.84rem; color: var(--text-muted); margin-bottom: 16px;">You must be signed in to view or search the hospital inventory list.</div>
+                                <button class="btn btn-primary" onclick="openAuthModal('login')">Sign In to View Inventory</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
             const searchEl = document.getElementById('inv-search');
             const deptEl = document.getElementById('inv-dept-filter');
             const search = searchEl ? searchEl.value : '';
@@ -1292,10 +1395,14 @@ BARCODE_HTML = """
             if(dept) url += 'department=' + encodeURIComponent(dept);
 
             try {
-                const res = await fetch(url);
+                const res = await fetch(url, { headers: getAuthHeaders() });
+                if (res.status === 401) {
+                    localStorage.removeItem('auth_token');
+                    currentUser = null;
+                    updateUserHeaderUI(null);
+                    return;
+                }
                 const assets = await res.json();
-                const tbody = document.getElementById('inventory-table-body');
-                if(!tbody) return;
                 
                 if(!assets || assets.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 24px;">No assets registered yet. Scan a barcode to add one.</td></tr>';
