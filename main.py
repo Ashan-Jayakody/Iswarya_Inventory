@@ -540,7 +540,7 @@ BARCODE_HTML = """
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
-            opacity: 0.14;
+            opacity: 0.38;
             pointer-events: none;
             z-index: 0;
         }
@@ -550,22 +550,45 @@ BARCODE_HTML = """
             z-index: 1;
         }
 
-        header { background: rgba(17, 24, 39, 0.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--card-border); padding: 12px 20px; position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+        header { 
+            background: rgba(11, 15, 23, 0.50); 
+            -webkit-backdrop-filter: blur(16px); 
+            backdrop-filter: blur(16px); 
+            border-bottom: 1px solid rgba(59, 130, 246, 0.25); 
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+            padding: 12px 20px; 
+            position: sticky; 
+            top: 0; 
+            z-index: 100; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            gap: 10px; 
+        }
         .brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-main); }
         .brand-badge { background: rgba(59, 130, 246, 0.12); color: #60a5fa; border: 1px solid rgba(96, 165, 250, 0.3); padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; }
 
         .container { width: 100%; max-width: 860px; margin: 0 auto; padding: 20px 16px; flex: 1; }
 
-        .tab-nav { display: flex; gap: 4px; margin-bottom: 20px; background: #0d1322; padding: 3px; border-radius: var(--radius-md); border: 1px solid var(--card-border); }
+        .tab-nav { display: flex; gap: 4px; margin-bottom: 20px; background: rgba(13, 19, 34, 0.75); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); padding: 3px; border-radius: var(--radius-md); border: 1px solid var(--card-border); }
         .tab-btn { flex: 1; padding: 9px 12px; border: none; background: transparent; color: var(--text-muted); font-weight: 500; font-size: 0.85rem; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.15s ease; }
-        .tab-btn.active { background: var(--card-bg) !important; color: var(--text-main) !important; border: 1px solid #334155; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+        .tab-btn.active { background: rgba(17, 24, 39, 0.9) !important; color: var(--text-main) !important; border: 1px solid #334155; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
 
         .tab-content { display: none !important; }
         .tab-content.active { display: block !important; animation: fadeIn 0.15s ease; }
 
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2); }
+        .card { 
+            background: rgba(17, 24, 39, 0.80); 
+            -webkit-backdrop-filter: blur(12px); 
+            backdrop-filter: blur(12px); 
+            border: 1px solid var(--card-border); 
+            border-radius: var(--radius-lg); 
+            padding: 20px; 
+            margin-bottom: 16px; 
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); 
+        }
         .card-title { font-size: 0.92rem; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; color: var(--text-main); letter-spacing: -0.01em; }
 
         #reader-wrapper { position: relative; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--card-border); background: #000; min-height: 240px; }
@@ -606,13 +629,26 @@ BARCODE_HTML = """
 
         .table-responsive { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.86rem; }
-        th { background: #0d1322; padding: 10px 14px; color: var(--text-muted); font-weight: 600; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--card-border); }
+        th { background: rgba(13, 19, 34, 0.85); padding: 10px 14px; color: var(--text-muted); font-weight: 600; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--card-border); }
         td { padding: 12px 14px; border-bottom: 1px solid var(--card-border); color: var(--text-main); }
-        tr:hover td { background: #162032; }
+        tr:hover td { background: rgba(22, 32, 50, 0.7); }
 
         #toast { position: fixed; bottom: 76px; left: 50%; transform: translateX(-50%); background: #1e293b; border: 1px solid #334155; color: #f8fafc; padding: 10px 20px; border-radius: 20px; font-size: 0.82rem; font-weight: 500; box-shadow: 0 8px 20px rgba(0,0,0,0.4); display: none; z-index: 2000; transition: all 0.2s ease; }
 
-        .mobile-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(17, 24, 39, 0.95); backdrop-filter: blur(12px); border-top: 1px solid var(--card-border); display: flex; justify-content: space-around; padding: 8px 0; z-index: 200; }
+        .mobile-nav { 
+            position: fixed; 
+            bottom: 0; 
+            left: 0; 
+            right: 0; 
+            background: rgba(11, 15, 23, 0.65); 
+            -webkit-backdrop-filter: blur(16px); 
+            backdrop-filter: blur(16px); 
+            border-top: 1px solid rgba(59, 130, 246, 0.25); 
+            display: flex; 
+            justify-content: space-around; 
+            padding: 8px 0; 
+            z-index: 200; 
+        }
         .mobile-nav-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: none; color: var(--text-muted); font-size: 0.75rem; font-weight: 500; cursor: pointer; padding: 6px 16px; border-radius: 6px; transition: color 0.15s ease; }
         .mobile-nav-btn.active { color: var(--accent); font-weight: 600; }
     </style>
