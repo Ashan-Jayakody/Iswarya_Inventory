@@ -14,7 +14,7 @@ import logging
 from collections import defaultdict
 from typing import Optional
 from fastapi import FastAPI, HTTPException, Query, Form, Header, Request
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, StreamingResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import uvicorn
@@ -486,6 +486,13 @@ def export_csv(authorization: Optional[str] = Header(None), token: Optional[str]
     response.headers["Content-Disposition"] = "attachment; filename=hospital_inventory.csv"
     return response
 
+@app.get("/bg-tech.png")
+def get_bg_image():
+    bg_path = os.path.join(os.path.dirname(__file__), "bg-tech.png")
+    if os.path.exists(bg_path):
+        return FileResponse(bg_path, media_type="image/png")
+    raise HTTPException(status_code=404, detail="Background image not found")
+
 # ---------------------------------------------------------
 # 4. Barcode Web Application HTML / JS / CSS
 # ---------------------------------------------------------
@@ -521,7 +528,27 @@ BARCODE_HTML = """
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
-        body { background-color: var(--bg-color); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; padding-bottom: 76px; }
+        body { background-color: var(--bg-color); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; padding-bottom: 76px; position: relative; }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url('/bg-tech.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            opacity: 0.14;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        header, .container, .mobile-nav, #toast, #auth-modal {
+            position: relative;
+            z-index: 1;
+        }
 
         header { background: rgba(17, 24, 39, 0.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--card-border); padding: 12px 20px; position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
         .brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-main); }
