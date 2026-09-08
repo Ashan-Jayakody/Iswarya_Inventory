@@ -1,7 +1,6 @@
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
-import socket
 import datetime
 import io
 import csv
@@ -29,33 +28,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ---------------------------------------------------------
-# 1. Local Network IP & Port Detection
-# ---------------------------------------------------------
-def get_local_ip() -> str:
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        ip = s.getsockname()[0]
-        s.close()
-        return ip
-    except Exception:
-        return "127.0.0.1"
-
-def find_available_port(start_port: int = 8000) -> int:
-    for port in range(start_port, start_port + 20):
-        try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                s.bind(('0.0.0.0', port))
-                return port
-        except OSError:
-            continue
-    return start_port
-
-LOCAL_IP = get_local_ip()
-PORT = find_available_port(8000)
-SERVER_URL = f"http://{LOCAL_IP}:{PORT}"
+PORT = int(os.getenv("PORT", 8000))
 
 # ---------------------------------------------------------
 # 2. Database Connection & Initialization (PostgreSQL)
@@ -484,9 +457,6 @@ BARCODE_HTML = """
         header { background: rgba(17, 24, 39, 0.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--card-border); padding: 12px 20px; position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
         .brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-main); }
         .brand-badge { background: rgba(59, 130, 246, 0.12); color: #60a5fa; border: 1px solid rgba(96, 165, 250, 0.3); padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; }
-        .ip-badge { background: #162032; color: var(--text-muted); border: 1px solid var(--card-border); padding: 5px 10px; border-radius: 6px; font-size: 0.76rem; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s ease; }
-        .ip-badge strong { color: var(--text-main); font-weight: 600; }
-        .ip-badge:hover { border-color: var(--accent); background: #1e293b; }
 
         .container { width: 100%; max-width: 860px; margin: 0 auto; padding: 20px 16px; flex: 1; }
 
@@ -544,8 +514,6 @@ BARCODE_HTML = """
         td { padding: 12px 14px; border-bottom: 1px solid var(--card-border); color: var(--text-main); }
         tr:hover td { background: #162032; }
 
-        .qr-center { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
-
         #toast { position: fixed; bottom: 76px; left: 50%; transform: translateX(-50%); background: #1e293b; border: 1px solid #334155; color: #f8fafc; padding: 10px 20px; border-radius: 20px; font-size: 0.82rem; font-weight: 500; box-shadow: 0 8px 20px rgba(0,0,0,0.4); display: none; z-index: 2000; transition: all 0.2s ease; }
 
         .mobile-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(17, 24, 39, 0.95); backdrop-filter: blur(12px); border-top: 1px solid var(--card-border); display: flex; justify-content: space-around; padding: 8px 0; z-index: 200; }
@@ -560,14 +528,8 @@ BARCODE_HTML = """
             <span>Risky Assets</span>
             <span class="brand-badge">Inventory</span>
         </div>
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <div class="ip-badge" onclick="switchTab('pair')">
-                <span>Mobile:</span>
-                <strong>__LOCAL_IP__:__PORT__</strong>
-            </div>
-            <div id="user-header-status">
-                <button class="btn btn-primary" style="padding: 5px 12px; min-height: 32px; font-size: 0.8rem;" onclick="openAuthModal('login')">Sign In</button>
-            </div>
+        <div id="user-header-status">
+            <button class="btn btn-primary" style="padding: 5px 12px; min-height: 32px; font-size: 0.8rem;" onclick="openAuthModal('login')">Sign In</button>
         </div>
     </header>
 
@@ -606,7 +568,6 @@ BARCODE_HTML = """
         <div class="tab-nav">
             <button class="tab-btn active" id="tab-btn-scan" onclick="switchTab('scan')">Barcode Scanner</button>
             <button class="tab-btn" id="tab-btn-inventory" onclick="switchTab('inventory')">Inventory List</button>
-            <button class="tab-btn" id="tab-btn-pair" onclick="switchTab('pair')">Mobile Connection</button>
         </div>
 
         <!-- TAB 1: SCANNER -->
@@ -685,30 +646,6 @@ BARCODE_HTML = """
                 </div>
             </div>
         </div>
-
-        <!-- TAB 3: MOBILE PAIR -->
-        <div id="tab-pair" class="tab-content">
-            <div class="card qr-center">
-                <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 6px;">Mobile Device Connection</h3>
-                <p style="color: var(--text-muted); font-size: 0.85rem; max-width: 480px; line-height: 1.5;">
-                    Ensure your mobile device is connected to the <strong>same network</strong> as this server, then open this address in Chrome or Safari:
-                </p>
-
-                <div style="background: #0d1322; border: 1px solid var(--card-border); padding: 14px 20px; border-radius: var(--radius-md); text-align: center; margin: 20px 0; width: 100%; max-width: 440px;">
-                    <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em;">Mobile Server Address</div>
-                    <strong id="mobile-url-display" style="font-size: 1.25rem; color: var(--accent);">__SERVER_URL__</strong>
-                </div>
-
-                <div style="text-align: left; background: #0d1322; border: 1px solid var(--card-border); padding: 16px; border-radius: var(--radius-md); font-size: 0.85rem; width: 100%; max-width: 500px; color: var(--text-muted);">
-                    <strong style="color: var(--text-main); font-size: 0.88rem;">Scanning Guidelines</strong>
-                    <ul style="margin-left: 18px; margin-top: 6px; line-height: 1.6;">
-                        <li><strong>Photo Capture:</strong> Tap <strong>Upload or Capture Barcode Image</strong> to snap physical barcode tags using your device camera.</li>
-                        <li><strong>Feedback:</strong> System emits a clean audio tone and haptic vibration upon successful decode.</li>
-                        <li><strong>Supported Formats:</strong> CODE128, CODE39, CODE93, EAN-13, EAN-8, UPC-A, UPC-E, Codabar, and QR Codes.</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
     </div>
 
     <div class="mobile-nav">
@@ -717,9 +654,6 @@ BARCODE_HTML = """
         </button>
         <button class="mobile-nav-btn" id="mob-btn-inventory" onclick="switchTab('inventory')">
             <span>Inventory</span>
-        </button>
-        <button class="mobile-nav-btn" id="mob-btn-pair" onclick="switchTab('pair')">
-            <span>Connection</span>
         </button>
     </div>
 
@@ -914,8 +848,6 @@ BARCODE_HTML = """
         }
 
         window.addEventListener('DOMContentLoaded', () => {
-            const urlEl = document.getElementById('mobile-url-display');
-            if(urlEl) urlEl.innerText = window.location.origin;
             checkAuthOnLoad();
             try { startBarcodeScanner(); } catch(e) {}
             try { loadInventory(); } catch(e) {}
@@ -1429,15 +1361,11 @@ BARCODE_HTML = """
 
 @app.get("/", response_class=HTMLResponse)
 def read_root():
-    content = BARCODE_HTML.replace("__LOCAL_IP__", LOCAL_IP)\
-                        .replace("__PORT__", str(PORT))\
-                        .replace("__SERVER_URL__", SERVER_URL)
-    return content
+    return HTMLResponse(content=BARCODE_HTML)
 
 if __name__ == "__main__":
     print(f"\n=======================================================")
-    print(f"RISKY ASSETS BARCODE SCANNER SERVER IS READY!")
-    print(f"Local Laptop Access : http://localhost:{PORT}")
-    print(f"Mobile Phone Access: http://{LOCAL_IP}:{PORT}")
+    print(f"ASSETS BARCODE SCANNER SERVER IS READY!")
+    print(f"Server Access: http://localhost:{PORT}")
     print(f"=======================================================\n")
     uvicorn.run(app, host="0.0.0.0", port=PORT)
