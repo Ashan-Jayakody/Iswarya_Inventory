@@ -591,10 +591,10 @@ BARCODE_HTML = """
         }
         .card-title { font-size: 0.92rem; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; color: var(--text-main); letter-spacing: -0.01em; }
 
-        #reader-wrapper { position: relative; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--card-border); background: #000; min-height: 240px; }
+        #reader-wrapper { position: relative; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--card-border); background: #000; min-height: 150px; max-height: 200px; }
         #reader { width: 100%; border: none !important; }
         #reader img { display: none !important; }
-        #reader video { width: 100% !important; object-fit: cover; }
+        #reader video { width: 100% !important; height: 180px !important; object-fit: cover; }
         #reader__dashboard_section_csr button { padding: 8px 14px; border-radius: 6px; background: var(--card-bg); color: var(--text-main); border: 1px solid var(--card-border); font-size: 0.85rem; font-weight: 500; cursor: pointer; margin: 4px; }
         #reader__camera_selection { padding: 8px 12px; border-radius: 6px; background: var(--input-bg); color: var(--text-main); border: 1px solid var(--input-border); width: 100%; outline: none; margin-bottom: 8px; font-size: 0.88rem; }
 
