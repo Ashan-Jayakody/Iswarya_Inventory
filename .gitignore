@@ -7,3 +7,7 @@ __pycache__/
 *.pdf
 *.pptx
 hospital_assets.db
+
+# Ignore seed scripts
+seed_data.py
+
