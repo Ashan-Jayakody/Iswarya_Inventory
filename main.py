@@ -712,7 +712,7 @@ BARCODE_HTML = """
                 </div>
                 <form onsubmit="event.preventDefault(); lookupManualId();" style="display: flex; gap: 10px;">
                     <input type="text" id="manual-asset-id" class="form-control" placeholder="Type or scan Barcode ID (e.g. BC-10042)..." autofocus onkeydown="if(event.key==='Enter'){event.preventDefault(); lookupManualId();}" style="font-size: 0.96rem; min-height: 44px;">
-                    <button type="submit" class="btn btn-primary" style="min-width: 100px; font-weight: 600;">Lookup</button>
+                    <button type="submit" class="btn btn-primary" style="min-width: 100px; font-weight: 600;">Search</button>
                 </form>
             </div>
 
@@ -1330,7 +1330,7 @@ BARCODE_HTML = """
                         </div>
 
                         <div style="display: flex; gap: 10px; margin-top: 14px;">
-                            <button type="submit" class="btn btn-primary" style="flex: 1;">Save Asset to Database</button>
+                            <button type="submit" class="btn btn-primary" style="flex: 1;">Save to Database</button>
                             <button type="button" class="btn btn-secondary" onclick="document.getElementById('scan-result-card').innerHTML=''">Cancel</button>
                         </div>
                     </form>
