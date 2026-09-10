@@ -702,10 +702,23 @@ BARCODE_HTML = """
             <button class="tab-btn" id="tab-btn-inventory" onclick="switchTab('inventory')">Inventory List</button>
         </div>
 
-        <!-- TAB 1: SCANNER -->
+        <!-- TAB 1: SCANNER & MANUAL ENTRY -->
         <div id="tab-scan" class="tab-content active">
-            <div class="card">
+            <!-- PRIMARY: MANUAL BARCODE ENTRY -->
+            <div class="card" style="border: 1px solid var(--accent); box-shadow: 0 0 15px rgba(59, 130, 246, 0.18);">
                 <div class="card-title">
+                    <span>Manual Barcode Entry</span>
+                    <span class="badge" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border-color: rgba(96, 165, 250, 0.3);">Primary Entry</span>
+                </div>
+                <form onsubmit="event.preventDefault(); lookupManualId();" style="display: flex; gap: 10px;">
+                    <input type="text" id="manual-asset-id" class="form-control" placeholder="Type or scan Barcode ID (e.g. BC-10042)..." autofocus onkeydown="if(event.key==='Enter'){event.preventDefault(); lookupManualId();}" style="font-size: 0.96rem; min-height: 44px;">
+                    <button type="submit" class="btn btn-primary" style="min-width: 100px; font-weight: 600;">Lookup</button>
+                </form>
+            </div>
+
+            <!-- SECONDARY: COMPACT CAMERA SCANNER -->
+            <div class="card">
+                <div class="card-title" style="margin-bottom: 10px;">
                     <span>Camera Viewfinder</span>
                     <span class="badge"><span class="badge-dot active"></span>Camera Ready</span>
                 </div>
@@ -714,20 +727,12 @@ BARCODE_HTML = """
                     <div id="reader"></div>
                 </div>
 
-                <div class="scanner-actions">
-                    <div class="btn btn-secondary file-upload-btn">
+                <div class="scanner-actions" style="margin-top: 10px;">
+                    <div class="btn btn-secondary file-upload-btn" style="min-height: 36px; font-size: 0.82rem;">
                         <span>Upload or Capture Barcode Image</span>
                         <input type="file" id="qr-input-file" accept="image/*" capture="environment">
                     </div>
                 </div>
-            </div>
-
-            <div class="card">
-                <div class="card-title">Manual Barcode Input</div>
-                <form onsubmit="event.preventDefault(); lookupManualId();" style="display: flex; gap: 8px;">
-                    <input type="text" id="manual-asset-id" class="form-control" placeholder="Enter or scan Barcode ID..." onkeydown="if(event.key==='Enter'){event.preventDefault(); lookupManualId();}">
-                    <button type="submit" class="btn btn-secondary" style="min-width: 90px;">Lookup</button>
-                </form>
             </div>
 
             <div id="scan-result-card"></div>
